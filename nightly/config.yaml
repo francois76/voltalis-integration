@@ -3,6 +3,8 @@ version: "nightly"
 slug: "voltalis-nightly"
 description: "Intégration Voltalis en Go exposant des entités dynamiques via l'API Home Assistant"
 startup: "services"
+homeassistant_api: true
+hassio_api: true
 boot: "auto"
 arch:
     - aarch64
