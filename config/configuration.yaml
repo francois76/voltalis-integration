@@ -1,0 +1,4 @@
+homeassistant:
+  auth_providers:
+    - type: legacy_api_password
+      api_password: "devpassword"

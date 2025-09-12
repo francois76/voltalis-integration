@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  go-dev:
+    image: mcr.microsoft.com/devcontainers/go:1-1.24-trixie
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    environment:
+      - SUPERVISOR_TOKEN=devtoken123 # pour tes tests, tu peux mocker le token
+    depends_on:
+      - supervisor
+    networks:
+      - hassnet
+
+  supervisor:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: supervisor
+    volumes:
+      - ./hass_config:/config
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Europe/Paris
+    ports:
+      - "8123:8123"
+    restart: unless-stopped
+    networks:
+      - hassnet
+
+networks:
+  hass-net:
+

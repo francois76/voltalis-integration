@@ -1,0 +1,1 @@
+(cd voltalis && SUPERVISOR_TOKEN=devpassword go run cmd/voltalis/main.go)
