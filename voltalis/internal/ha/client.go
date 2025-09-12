@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 )
@@ -43,5 +44,7 @@ func (c *Client) PublishState(entityID string, state string, attributes map[stri
 		fmt.Println("Error publishing state:", err)
 		return
 	}
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
 	defer resp.Body.Close()
 }
