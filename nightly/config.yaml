@@ -1,0 +1,14 @@
+name: "Voltalis Intégration (Nightly)"
+version: "nightly"
+slug: "voltalis-nightly"
+description: "Intégration Voltalis en Go exposant des entités dynamiques via l'API Home Assistant"
+startup: "services"
+boot: "auto"
+arch:
+    - aarch64
+    - amd64
+map:
+    - config:rw
+options: {}
+schema: {}
+image: "ghcr.io/francois76/voltalis"
