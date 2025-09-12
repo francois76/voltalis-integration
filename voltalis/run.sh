@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-/app/voltalis
+URL=supervisor/core /app/voltalis

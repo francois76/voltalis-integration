@@ -11,6 +11,7 @@ import (
 
 type Client struct {
 	token  string
+	url    string
 	client *http.Client
 }
 
@@ -19,14 +20,19 @@ func NewClient() *Client {
 	if token == "" {
 		panic("No supervisor token found")
 	}
+	url := os.Getenv("URL")
+	if url == "" {
+		panic("No supervisor URL found")
+	}
 	return &Client{
 		token:  token,
+		url:    url,
 		client: &http.Client{},
 	}
 }
 
 func (c *Client) PublishState(entityID string, state string, attributes map[string]any) {
-	url := fmt.Sprintf("http://supervisor/core/api/states/%s", entityID)
+	url := fmt.Sprintf("http://%s/api/states/%s", c.url, entityID)
 
 	payload := map[string]any{
 		"state":      state,

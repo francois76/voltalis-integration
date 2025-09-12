@@ -1,0 +1,1 @@
+(cd test && docker compose up)

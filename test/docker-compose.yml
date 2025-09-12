@@ -1,0 +1,14 @@
+services:
+  supervisor:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: supervisor
+    volumes:
+      - ./hass_config:/config
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Europe/Paris
+    ports:
+      - "8123:8123"
+    restart: unless-stopped
+
+
