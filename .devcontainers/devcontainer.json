@@ -20,5 +20,8 @@
     "forwardPorts": [
         8123 // expose Home Assistant on localhost:8123
     ],
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    },
     "remoteUser": "vscode"
 }
