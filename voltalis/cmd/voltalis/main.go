@@ -17,7 +17,7 @@ func main() {
 	}
 	heaterTopics := transform.RegisterDevices(client)
 	scheduler.Run(15*time.Second, func() {
-		transform.SyncVoltalisHeaterToHA(client, heaterTopics)
+		transform.SyncVoltalisHeatersToHA(client, heaterTopics)
 	})
 
 }

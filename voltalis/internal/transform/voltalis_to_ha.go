@@ -4,7 +4,7 @@ import (
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
 )
 
-func SyncVoltalisHeaterToHA(client *mqtt.Client, heaterWriteTopics map[int64]mqtt.HeaterWriteTopics) {
+func SyncVoltalisHeatersToHA(client *mqtt.Client, heaterWriteTopics map[int64]mqtt.HeaterWriteTopics) {
 	client.PublishState(heaterWriteTopics[12345678901234].CurrentTemperature, "19.5")
 	client.PublishState(heaterWriteTopics[12345678901234].Mode, "heat")
 	client.PublishState(heaterWriteTopics[12345678901234].Temperature, "21")
