@@ -1,7 +1,7 @@
 services:
-  supervisor:
+  homeassistant:
+    container_name: homeassistant
     image: ghcr.io/home-assistant/home-assistant:stable
-    container_name: supervisor
     volumes:
       - ./hass_config:/config
       - /etc/localtime:/etc/localtime:ro
@@ -10,5 +10,17 @@ services:
     ports:
       - "8123:8123"
     restart: unless-stopped
+    depends_on:
+      - mqtt
 
-
+  mqtt:
+    container_name: mqtt
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    ports:
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # Websocket (optionnel)
