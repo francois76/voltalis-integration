@@ -4,14 +4,14 @@ import "fmt"
 
 type DeviceInfo struct {
 	Identifiers  []string `json:"identifiers"`
-	name         string   `json:"name"`
+	Name         string   `json:"name"`
 	Manufacturer string   `json:"manufacturer"`
 	Model        string   `json:"model"`
 	SwVersion    string   `json:"sw_version"`
 }
 
 type HeaterConfigPayload struct {
-	name                    string     `json:"name"`
+	Name                    string     `json:"name"`
 	UniqueID                string     `json:"unique_id"`
 	CommandTopic            Topic      `json:"command_topic"`
 	ModeStateTopic          Topic      `json:"mode_state_topic"`
@@ -45,6 +45,7 @@ func InstanciateVoltalisHeaterBaseConfig(id int64) *HeaterConfigPayload {
 		Device: DeviceInfo{
 			Identifiers:  []string{"voltalis_heater_" + fmt.Sprint(id)},
 			Manufacturer: "Voltalis",
+			Name:         "Radiateur",
 			Model:        "Radiateur voltalis",
 			SwVersion:    "0.1.0",
 		},
@@ -52,7 +53,6 @@ func InstanciateVoltalisHeaterBaseConfig(id int64) *HeaterConfigPayload {
 }
 
 func (c *HeaterConfigPayload) WithName(name string) *HeaterConfigPayload {
-	c.name = name
-	c.Device.name = name + " Hub"
+	c.Name = name
 	return c
 }

@@ -4,10 +4,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tonuser/voltalis-integration/voltalis/internal/mqtt"
+	"log/slog"
+	"os"
+
+	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
 )
 
 func main() {
+	// Configuration du niveau de log via une variable d'environnement
+	logLevel := slog.LevelInfo
+	if os.Getenv("DEBUG") == "1" {
+		logLevel = slog.LevelDebug
+	}
+	h := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel})
+	slog.SetDefault(slog.New(h))
 
 	client, err := mqtt.InitClient("tcp://localhost:1883", "voltalis-addon")
 	if err != nil {
@@ -20,7 +30,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Discovery config published")
+	slog.Info("Discovery config published")
 
 	// Exemple : publier périodiquement une température et l’état
 	i := 0
@@ -44,7 +54,6 @@ func main() {
 			fmt.Println("Failed to publish target temperature:", err)
 		}
 
-		fmt.Println("Published climate state", temp, mode)
 		time.Sleep(15 * time.Second)
 		i++
 	}
