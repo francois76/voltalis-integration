@@ -1,0 +1,35 @@
+package mqtt
+
+import "fmt"
+
+type ControllerSelectConfigPayload struct {
+	Name         string     `json:"name"`
+	UniqueID     string     `json:"unique_id"`
+	CommandTopic ReadTopic  `json:"command_topic"`
+	StateTopic   WriteTopic `json:"state_topic"`
+	Options      []string   `json:"options"`
+	Device       DeviceInfo `json:"device"`
+}
+
+var CONTROLLER_DEVICE = DeviceInfo{
+	Identifiers:  []string{"voltalis_controller"},
+	Manufacturer: "Voltalis",
+	Name:         "Controller de gestion voltalis",
+	Model:        "Voltalis software Controller",
+	SwVersion:    "0.1.0",
+}
+
+func InstanciateVoltalisControllerSelectConfig(name string, options ...string) *ControllerSelectConfigPayload {
+	return &ControllerSelectConfigPayload{
+		UniqueID:     fmt.Sprintf("voltalis_controller_select_%s", name),
+		Name:         fmt.Sprintf("Controller Select %s", name),
+		CommandTopic: newControllerTopic[ReadTopic](name, "select/set"),
+		StateTopic:   newControllerTopic[WriteTopic](name, "select"),
+		Options:      options,
+		Device:       CONTROLLER_DEVICE,
+	}
+}
+
+func newControllerTopic[T Topic](name string, suffix string) T {
+	return T(fmt.Sprintf("voltalis/controller/%s/%s", name, suffix))
+}

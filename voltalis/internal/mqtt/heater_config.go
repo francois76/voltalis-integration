@@ -34,19 +34,19 @@ type HeaterConfigPayload struct {
 func InstanciateVoltalisHeaterBaseConfig(id int64) *HeaterConfigPayload {
 	return &HeaterConfigPayload{
 		UniqueID:                fmt.Sprintf("voltalis_heater_%d", id),
-		CommandTopic:            newTopic[WriteTopic](id, "set"),
-		ModeStateTopic:          newTopic[WriteTopic](id, "mode"),
-		ModeCommandTopic:        newTopic[ReadTopic](id, "mode/set"),
+		CommandTopic:            newHeaterTopic[WriteTopic](id, "set"),
+		ModeStateTopic:          newHeaterTopic[WriteTopic](id, "mode"),
+		ModeCommandTopic:        newHeaterTopic[ReadTopic](id, "mode/set"),
 		PresetModes:             []string{"eco", "away", "home"},
-		PresetModeCommandTopic:  newTopic[ReadTopic](id, "preset_mode/set"),
-		PresetModeStateTopic:    newTopic[WriteTopic](id, "preset_mode"),
-		TemperatureStateTopic:   newTopic[WriteTopic](id, "temp"),
-		TemperatureCommandTopic: newTopic[ReadTopic](id, "temp/set"),
+		PresetModeCommandTopic:  newHeaterTopic[ReadTopic](id, "preset_mode/set"),
+		PresetModeStateTopic:    newHeaterTopic[WriteTopic](id, "preset_mode"),
+		TemperatureStateTopic:   newHeaterTopic[WriteTopic](id, "temp"),
+		TemperatureCommandTopic: newHeaterTopic[ReadTopic](id, "temp/set"),
 		MinTemp:                 15,
 		MaxTemp:                 25,
 		TempStep:                0.5,
 		Modes:                   []string{"auto", "off", "heat"},
-		CurrentTemperatureTopic: newTopic[WriteTopic](id, "current_temp"),
+		CurrentTemperatureTopic: newHeaterTopic[WriteTopic](id, "current_temp"),
 		Device: DeviceInfo{
 			Identifiers:  []string{"voltalis_heater_" + fmt.Sprint(id)},
 			Manufacturer: "Voltalis",
@@ -62,6 +62,6 @@ func (c *HeaterConfigPayload) WithName(name string) *HeaterConfigPayload {
 	return c
 }
 
-func newTopic[T Topic](id int64, suffix string) T {
+func newHeaterTopic[T Topic](id int64, suffix string) T {
 	return T(fmt.Sprintf("voltalis/heater/%d/%s", id, suffix))
 }

@@ -15,8 +15,12 @@ func (c *Client) PublishConfig(payload any) error {
 }
 
 // PublishState publie une mise à jour d'état (retained=false)
-func (c *Client) PublishState(topic WriteTopic, payload any) error {
-	return c.publish(topic, false, payload)
+// Si une mise a jour d'état tombe en erreur, on ne fait pas tomber le processus complet
+func (c *Client) PublishState(topic WriteTopic, payload any) {
+	err := c.publish(topic, false, payload)
+	if err != nil {
+		slog.Error("Failed to publish state", "topic", topic, "error", err)
+	}
 }
 
 // publish publie sur MQTT :

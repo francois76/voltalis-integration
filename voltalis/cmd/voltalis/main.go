@@ -2,23 +2,16 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"log/slog"
-	"os"
 
+	"github.com/francois76/voltalis-integration/voltalis/internal/logger"
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
+	"github.com/francois76/voltalis-integration/voltalis/internal/scheduler"
 )
 
 func main() {
-	// Configuration du niveau de log via une variable d'environnement
-	logLevel := slog.LevelInfo
-	if os.Getenv("DEBUG") == "1" {
-		logLevel = slog.LevelDebug
-	}
-	h := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel})
-	slog.SetDefault(slog.New(h))
-
+	logger.InitLogs()
 	client, err := mqtt.InitClient("tcp://localhost:1883", "voltalis-addon")
 	if err != nil {
 		panic(err)
@@ -31,34 +24,13 @@ func main() {
 		panic(err)
 	}
 	slog.Info("Discovery config published")
+	go client.ListenState(configPayload.TemperatureCommandTopic, func(data string) {
+		slog.Info("Target temperature command received", "value", data)
+	})
+	scheduler.Run(func() {
+		client.PublishState(configPayload.CurrentTemperatureTopic, fmt.Sprintf("%.1f", 19.5))
+		client.PublishState(configPayload.ModeStateTopic, "heat")
+		client.PublishState(configPayload.TemperatureStateTopic, "21")
+	})
 
-	// Exemple : publier périodiquement une température et l’état
-	i := 0
-	for {
-		// Température actuelle
-		temp := 19.5 + float64(i%3)
-		err = client.PublishState(configPayload.CurrentTemperatureTopic, fmt.Sprintf("%.1f", temp))
-		if err != nil {
-			fmt.Println("Failed to publish temperature:", err)
-		}
-		// Mode (heat/off)
-		mode := "heat"
-		err = client.PublishState(configPayload.ModeStateTopic, mode)
-		if err != nil {
-			fmt.Println("Failed to publish mode:", err)
-		}
-
-		// Température consigne
-		err = client.PublishState(configPayload.TemperatureStateTopic, "21")
-		if err != nil {
-			fmt.Println("Failed to publish target temperature:", err)
-		}
-
-		go client.ListenState(configPayload.TemperatureCommandTopic, func(data string) {
-			slog.Info("Target temperature command received", "value", data)
-		})
-
-		time.Sleep(15 * time.Second)
-		i++
-	}
 }
