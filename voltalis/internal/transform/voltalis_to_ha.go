@@ -5,11 +5,10 @@ import (
 )
 
 func SyncVoltalisHeatersToHA(client *mqtt.Client, heaterWriteTopics map[int64]mqtt.HeaterWriteTopics) {
-	client.PublishState(heaterWriteTopics[12345678901234].CurrentTemperature, "19.5")
-	client.PublishState(heaterWriteTopics[12345678901234].Mode, "heat")
-	client.PublishState(heaterWriteTopics[12345678901234].Temperature, "21")
-	client.PublishState(heaterWriteTopics[23456789012345].CurrentTemperature, "None")
-	client.PublishState(heaterWriteTopics[23456789012345].Mode, "auto")
-	client.PublishState(heaterWriteTopics[23456789012345].Temperature, "None")
-	client.PublishState(heaterWriteTopics[23456789012345].Action, "idle")
+	// client.PublishState(heaterWriteTopics[12345678901234].CurrentTemperature, "19.5")
+	// client.PublishState(heaterWriteTopics[12345678901234].Mode, "heat")
+	// client.PublishState(heaterWriteTopics[12345678901234].Temperature, "21")
+	// client.PublishState(heaterWriteTopics[23456789012345].CurrentTemperature, "None")
+	// client.PublishState(heaterWriteTopics[23456789012345].Mode, "auto")
+	// client.PublishState(heaterWriteTopics[23456789012345].Temperature, "None")
 }

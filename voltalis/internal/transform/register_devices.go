@@ -38,6 +38,23 @@ func registerHeater(client *mqtt.Client, deviceID int64, name string) mqtt.Heate
 
 	go client.ListenState(heaterTopics.Read.PresetMode, func(data string) {
 		slog.Info("Target temperature command received", "value", data)
+		if data == "none" {
+			client.PublishState(heaterTopics.Write.Mode, mqtt.HeaterModeHeat)
+			client.PublishState(heaterTopics.Write.Temperature, 18.0)
+		} else {
+			client.PublishState(heaterTopics.Write.Mode, mqtt.HeaterModeAuto)
+			client.PublishState(heaterTopics.Write.Temperature, "None")
+		}
+		switch mqtt.HeaterPresetMode(data) {
+		case mqtt.HeaterPresetEco:
+			client.PublishState(heaterTopics.Write.Action, mqtt.HeaterActionIdle)
+		case mqtt.HeaterPresetAway:
+			client.PublishState(heaterTopics.Write.Action, mqtt.HeaterActionCooling)
+		case mqtt.HeaterPresetHome:
+			client.PublishState(heaterTopics.Write.Action, mqtt.HeaterActionHeating)
+		default:
+			slog.Warn("Unknown preset mode received", "value", data)
+		}
 	})
 
 	return heaterTopics.Write

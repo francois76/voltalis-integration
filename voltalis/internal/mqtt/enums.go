@@ -18,6 +18,16 @@ const (
 	HeaterPresetHome HeaterPresetMode = "home"
 )
 
+type HeaterAction string
+
+const (
+	HeaterActionOff        HeaterAction = "off"
+	HeaterActionIdle       HeaterAction = "idle"
+	HeaterActionHeating    HeaterAction = "heating"
+	HeaterActionPreheating HeaterAction = "preheating"
+	HeaterActionCooling    HeaterAction = "cooling"
+)
+
 // Modes pour les radiateurs Voltalis
 
 type component string
@@ -26,3 +36,5 @@ const (
 	ComponentClimate component = "climate"
 	ComponentSelect  component = "select"
 )
+
+const RESET_VALUE = "None"
