@@ -20,7 +20,7 @@ func main() {
 
 	configPayload := mqtt.InstanciateVoltalisHeaterBaseConfig(123).WithName("Salon")
 
-	err = client.PublishConfig(configPayload)
+	err = client.PublishConfig(mqtt.ComponentClimate, "voltalis_heater", configPayload)
 	if err != nil {
 		panic(err)
 	}
@@ -30,7 +30,7 @@ func main() {
 		slog.Info("Target temperature command received", "value", data)
 	})
 	scheduler.Run(15*time.Second, func() {
-		transform.SyncVoltalisToHA(client, heaterTopics.Write)
+		transform.SyncVoltalisHeaterToHA(client, heaterTopics.Write)
 	})
 
 }

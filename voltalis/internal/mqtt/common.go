@@ -12,3 +12,10 @@ func newTopicName[T Topic](base string) T {
 	}
 	return T(fmt.Sprintf("voltalis/%s/%s", base, mode))
 }
+
+type component string
+
+const (
+	ComponentClimate component = "climate"
+	ComponentSelect  component = "select"
+)
