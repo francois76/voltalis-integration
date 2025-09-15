@@ -23,13 +23,9 @@ func InstanciateVoltalisControllerSelectConfig(name string, options ...string) *
 	return &ControllerSelectConfigPayload{
 		UniqueID:     fmt.Sprintf("voltalis_controller_select_%s", name),
 		Name:         fmt.Sprintf("Controller Select %s", name),
-		CommandTopic: newControllerTopic[ReadTopic](name, "select/set"),
-		StateTopic:   newControllerTopic[WriteTopic](name, "select"),
+		CommandTopic: newTopicName[ReadTopic](name),
+		StateTopic:   newTopicName[WriteTopic](name),
 		Options:      options,
 		Device:       CONTROLLER_DEVICE,
 	}
-}
-
-func newControllerTopic[T Topic](name string, suffix string) T {
-	return T(fmt.Sprintf("voltalis/controller/%s/%s", name, suffix))
 }

@@ -2,9 +2,9 @@ package scheduler
 
 import "time"
 
-func Run(f func()) {
+func Run(delay time.Duration, f func()) {
 	for {
 		f()
-		time.Sleep(15 * time.Second)
+		time.Sleep(delay)
 	}
 }

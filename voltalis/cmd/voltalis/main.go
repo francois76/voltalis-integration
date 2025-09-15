@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"time"
 
 	"log/slog"
 
 	"github.com/francois76/voltalis-integration/voltalis/internal/logger"
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
 	"github.com/francois76/voltalis-integration/voltalis/internal/scheduler"
+	"github.com/francois76/voltalis-integration/voltalis/internal/transform"
 )
 
 func main() {
@@ -24,13 +25,12 @@ func main() {
 		panic(err)
 	}
 	slog.Info("Discovery config published")
-	go client.ListenState(configPayload.TemperatureCommandTopic, func(data string) {
+	heaterTopics := configPayload.GetTopics()
+	go client.ListenState(heaterTopics.Read.Temperature, func(data string) {
 		slog.Info("Target temperature command received", "value", data)
 	})
-	scheduler.Run(func() {
-		client.PublishState(configPayload.CurrentTemperatureTopic, fmt.Sprintf("%.1f", 19.5))
-		client.PublishState(configPayload.ModeStateTopic, "heat")
-		client.PublishState(configPayload.TemperatureStateTopic, "21")
+	scheduler.Run(15*time.Second, func() {
+		transform.SyncVoltalisToHA(client, heaterTopics.Write)
 	})
 
 }

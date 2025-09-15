@@ -2,8 +2,6 @@ package mqtt
 
 import "fmt"
 
-type Topic interface{ WriteTopic | ReadTopic }
-
 type DeviceInfo struct {
 	Identifiers  []string `json:"identifiers"`
 	Name         string   `json:"name"`
@@ -30,18 +28,33 @@ type HeaterConfigPayload struct {
 	CurrentTemperatureTopic WriteTopic `json:"current_temperature_topic"`
 	Device                  DeviceInfo `json:"device"`
 }
+type HeaterReadTopics struct {
+	Mode        ReadTopic
+	PresetMode  ReadTopic
+	Temperature ReadTopic
+}
+type HeaterWriteTopics struct {
+	Mode               WriteTopic
+	PresetMode         WriteTopic
+	Temperature        WriteTopic
+	CurrentTemperature WriteTopic
+}
+type HeaterTopics struct {
+	Read  HeaterReadTopics
+	Write HeaterWriteTopics
+}
 
 func InstanciateVoltalisHeaterBaseConfig(id int64) *HeaterConfigPayload {
 	return &HeaterConfigPayload{
 		UniqueID:                fmt.Sprintf("voltalis_heater_%d", id),
 		CommandTopic:            newHeaterTopic[WriteTopic](id, "set"),
 		ModeStateTopic:          newHeaterTopic[WriteTopic](id, "mode"),
-		ModeCommandTopic:        newHeaterTopic[ReadTopic](id, "mode/set"),
+		ModeCommandTopic:        newHeaterTopic[ReadTopic](id, "mode"),
 		PresetModes:             []string{"eco", "away", "home"},
-		PresetModeCommandTopic:  newHeaterTopic[ReadTopic](id, "preset_mode/set"),
+		PresetModeCommandTopic:  newHeaterTopic[ReadTopic](id, "preset_mode"),
 		PresetModeStateTopic:    newHeaterTopic[WriteTopic](id, "preset_mode"),
 		TemperatureStateTopic:   newHeaterTopic[WriteTopic](id, "temp"),
-		TemperatureCommandTopic: newHeaterTopic[ReadTopic](id, "temp/set"),
+		TemperatureCommandTopic: newHeaterTopic[ReadTopic](id, "temp"),
 		MinTemp:                 15,
 		MaxTemp:                 25,
 		TempStep:                0.5,
@@ -57,9 +70,25 @@ func InstanciateVoltalisHeaterBaseConfig(id int64) *HeaterConfigPayload {
 	}
 }
 
-func (c *HeaterConfigPayload) WithName(name string) *HeaterConfigPayload {
-	c.Name = name
-	return c
+func (p *HeaterConfigPayload) WithName(name string) *HeaterConfigPayload {
+	p.Name = name
+	return p
+}
+
+func (p *HeaterConfigPayload) GetTopics() HeaterTopics {
+	return HeaterTopics{
+		Read: HeaterReadTopics{
+			Mode:        p.ModeCommandTopic,
+			PresetMode:  p.PresetModeCommandTopic,
+			Temperature: p.TemperatureCommandTopic,
+		},
+		Write: HeaterWriteTopics{
+			Mode:               p.ModeStateTopic,
+			PresetMode:         p.PresetModeStateTopic,
+			Temperature:        p.TemperatureStateTopic,
+			CurrentTemperature: p.CurrentTemperatureTopic,
+		},
+	}
 }
 
 func newHeaterTopic[T Topic](id int64, suffix string) T {
