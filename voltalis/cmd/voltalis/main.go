@@ -26,7 +26,7 @@ func main() {
 
 	configPayload := mqtt.InstanciateVoltalisHeaterBaseConfig(123).WithName("Salon")
 
-	err = client.Publish(mqtt.HomeAssistantClimateConfig, configPayload)
+	err = client.PublishConfig(configPayload)
 	if err != nil {
 		panic(err)
 	}
@@ -37,22 +37,26 @@ func main() {
 	for {
 		// Température actuelle
 		temp := 19.5 + float64(i%3)
-		err = client.Publish(configPayload.CurrentTemperatureTopic, fmt.Sprintf("%.1f", temp))
+		err = client.PublishState(configPayload.CurrentTemperatureTopic, fmt.Sprintf("%.1f", temp))
 		if err != nil {
 			fmt.Println("Failed to publish temperature:", err)
 		}
 		// Mode (heat/off)
 		mode := "heat"
-		err = client.Publish(configPayload.ModeCommandTopic, mode)
+		err = client.PublishState(configPayload.ModeStateTopic, mode)
 		if err != nil {
 			fmt.Println("Failed to publish mode:", err)
 		}
 
 		// Température consigne
-		err = client.Publish(configPayload.TemperatureCommandTopic, "21.0")
+		err = client.PublishState(configPayload.TemperatureStateTopic, "21")
 		if err != nil {
 			fmt.Println("Failed to publish target temperature:", err)
 		}
+
+		go client.ListenState(configPayload.TemperatureCommandTopic, func(data string) {
+			slog.Info("Target temperature command received", "value", data)
+		})
 
 		time.Sleep(15 * time.Second)
 		i++

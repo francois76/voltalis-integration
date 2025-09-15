@@ -5,36 +5,24 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
-
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-type Topic string
+type WriteTopic string
 
-const (
-	HomeAssistantClimateConfig Topic = "homeassistant/climate/voltalis_heater/config"
-)
-
-type Client struct {
-	mqtt.Client
+// PublishConfig publie une configuration Home Assistant (retained=true)
+func (c *Client) PublishConfig(payload any) error {
+	return c.publish("homeassistant/climate/voltalis_heater/config", true, payload)
 }
 
-func InitClient(broker string, clientID string) (*Client, error) {
-	opts := mqtt.NewClientOptions().
-		AddBroker(broker).
-		SetClientID(clientID)
-
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		return nil, token.Error()
-	}
-	return &Client{Client: client}, nil
+// PublishState publie une mise à jour d'état (retained=false)
+func (c *Client) PublishState(topic WriteTopic, payload any) error {
+	return c.publish(topic, false, payload)
 }
 
-// Publish publie sur MQTT :
+// publish publie sur MQTT :
 // - Si T est une struct/pointeur de struct, on fait un json.Marshal
 // - Si T est un type primitif (string, []byte, int, float, bool), on l'envoie directement
-func (c *Client) Publish(topic Topic, payload any) error {
+func (c *Client) publish(topic WriteTopic, retained bool, payload any) error {
 	var data []byte
 	var err error
 
@@ -73,8 +61,8 @@ func (c *Client) Publish(topic Topic, payload any) error {
 		}
 	}
 
-	slog.Debug("MQTT publish", "topic", topic, "payload", string(data))
-	token := c.Client.Publish(string(topic), 0, false, data)
+	slog.Debug("MQTT publish", "topic", topic, "payload", data)
+	token := c.Client.Publish(string(topic), 0, retained, data)
 	token.Wait()
 	return token.Error()
 }
