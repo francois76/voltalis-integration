@@ -19,8 +19,11 @@ func registerController(client *mqtt.Client) {
 	if err != nil {
 		panic(err)
 	}
-	go client.ListenState(controller.ReadTopics.Command, func(data string) {
+	go client.ListenState(controller.ReadTopics.Mode, func(data string) {
 		// Handle controller command state changes
+	})
+	go client.ListenState(controller.ReadTopics.Duration, func(data string) {
+		slog.Debug("received value:", "value", data)
 	})
 }
 func registerHeater(client *mqtt.Client, deviceID int64, name string) mqtt.HeaterWriteTopics {

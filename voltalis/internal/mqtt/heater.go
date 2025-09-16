@@ -36,14 +36,15 @@ func (c *Client) InstanciateHeater(id int64, name string) (Heater, error) {
 	if err := c.PublishConfig(payload); err != nil {
 		return Heater{}, fmt.Errorf("failed to publish heater config: %w", err)
 	}
-	selectPresetPayload := getPayloadSelectMode(payload.Device, "select_mode", "Controller select mode", PRESET_SELECT_ONE_HEATER...)
+	selectPresetPayload := getPayloadSelectMode(payload.Device, PRESET_SELECT_ONE_HEATER...)
+	// le select de preset est juste un remapping sur le climate. Donc on ne déclare pas de topic dédiés
+	// (on écrase ceux qui sont créés par la méthode au dessus)
 	selectPresetPayload.CommandTopic = payload.PresetModeCommandTopic
 	selectPresetPayload.StateTopic = payload.PresetModeStateTopic
 	if err := c.PublishConfig(selectPresetPayload); err != nil {
 		return Heater{}, fmt.Errorf("failed to publish heater select config: %w", err)
 	}
 	return Heater{
-		heaterConfigPayload: payload,
 		ReadTopics: HeaterReadTopics{
 			Mode:        payload.ModeCommandTopic,
 			PresetMode:  payload.PresetModeCommandTopic,
@@ -73,9 +74,8 @@ type HeaterWriteTopics struct {
 }
 
 type Heater struct {
-	heaterConfigPayload *HeaterConfigPayload
-	ReadTopics          HeaterReadTopics
-	WriteTopics         HeaterWriteTopics
+	ReadTopics  HeaterReadTopics
+	WriteTopics HeaterWriteTopics
 }
 
 func newHeaterTopic[T Topic](id int64, suffix string) T {

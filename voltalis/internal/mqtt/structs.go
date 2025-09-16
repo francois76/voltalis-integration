@@ -34,13 +34,14 @@ func (p *HeaterConfigPayload) getComponent() component {
 	return ComponentClimate
 }
 
-type SelectConfigPayload[T ~string] struct {
-	Name         string     `json:"name"`
-	UniqueID     string     `json:"unique_id"`
-	CommandTopic ReadTopic  `json:"command_topic"`
-	StateTopic   WriteTopic `json:"state_topic"`
-	Options      []T        `json:"options"`
-	Device       DeviceInfo `json:"device"`
+type SelectConfigPayload[T ~string | ~int64] struct {
+	Name          string     `json:"name"`
+	UniqueID      string     `json:"unique_id"`
+	CommandTopic  ReadTopic  `json:"command_topic"`
+	ValueTemplate string     `json:"value_template"`
+	StateTopic    WriteTopic `json:"state_topic"`
+	Options       []T        `json:"options"`
+	Device        DeviceInfo `json:"device"`
 }
 
 func (p *SelectConfigPayload[T]) getIdentifier() string {

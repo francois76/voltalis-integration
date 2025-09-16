@@ -11,22 +11,35 @@ var CONTROLLER_DEVICE = DeviceInfo{
 }
 
 func (c *Client) InstanciateController() (Controller, error) {
-	configPayload := getPayloadSelectMode(CONTROLLER_DEVICE, "controller", "mode", PRESET_SELECT_CONTROLLER...)
-	if err := c.PublishConfig(configPayload); err != nil {
-		return Controller{}, fmt.Errorf("failed to publish controller config: %w", err)
+	modePayload := getPayloadSelectMode(CONTROLLER_DEVICE, PRESET_SELECT_CONTROLLER...)
+	if err := c.PublishConfig(modePayload); err != nil {
+		return Controller{}, fmt.Errorf("failed to publish controller mode config: %w", err)
 	}
+	durationPayload := getPayloadSelectDuration(CONTROLLER_DEVICE)
+	if err := c.PublishConfig(durationPayload); err != nil {
+		return Controller{}, fmt.Errorf("failed to publish controller duration config: %w", err)
+	}
+
 	return Controller{
-		ReadTopics:  ControllerReadTopics{Command: configPayload.CommandTopic},
-		WriteTopics: ControllerWriteTopics{State: configPayload.StateTopic},
+		ReadTopics: ControllerReadTopics{
+			Mode:     modePayload.CommandTopic,
+			Duration: durationPayload.CommandTopic,
+		},
+		WriteTopics: ControllerWriteTopics{
+			Mode:     modePayload.StateTopic,
+			Duration: durationPayload.StateTopic,
+		},
 	}, nil
 
 }
 
 type ControllerReadTopics struct {
-	Command ReadTopic
+	Mode     ReadTopic
+	Duration ReadTopic
 }
 type ControllerWriteTopics struct {
-	State WriteTopic
+	Mode     WriteTopic
+	Duration WriteTopic
 }
 
 type Controller struct {

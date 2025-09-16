@@ -1,5 +1,9 @@
 package mqtt
 
+import (
+	"time"
+)
+
 // Modes pour les radiateurs Voltalis
 type HeaterMode string
 
@@ -42,6 +46,13 @@ type component string
 const (
 	ComponentClimate component = "climate"
 	ComponentSelect  component = "select"
+)
+
+type selectDuration time.Duration
+
+const (
+	selectDurationOneHour selectDuration = selectDuration(time.Hour)
+	selectDurationTwoHour selectDuration = 2 * selectDurationOneHour
 )
 
 const TEMPERATURE_NONE = "None"
