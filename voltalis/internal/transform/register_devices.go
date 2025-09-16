@@ -25,13 +25,29 @@ func registerController(client *mqtt.Client) {
 	}
 }
 func registerHeater(client *mqtt.Client, deviceID int64, name string) mqtt.HeaterWriteTopics {
-	configPayload := mqtt.InstanciateVoltalisHeaterBaseConfig(deviceID).WithName(name)
+	configPayload := mqtt.InstanciateVoltalisHeaterClimate(deviceID, name)
 	err := client.PublishConfig(mqtt.ComponentClimate, fmt.Sprintf("voltalis_heater_%d", deviceID), configPayload)
 	if err != nil {
 		panic(err)
 	}
 	slog.Info("Discovery config published")
 	heaterTopics := configPayload.GetTopics()
+
+	err = client.PublishConfig(mqtt.ComponentSelect, fmt.Sprintf("voltalis_select_%d", deviceID), mqtt.SelectConfigPayload{
+		UniqueID:     fmt.Sprintf("voltalis_controller_select_%s", name),
+		Name:         fmt.Sprintf("Controller Select %s", name),
+		CommandTopic: configPayload.PresetModeCommandTopic,
+		StateTopic:   configPayload.PresetModeStateTopic,
+		Options: []string{
+			string(mqtt.HeaterPresetModeHorsGel),
+			string(mqtt.HeaterPresetModeEco),
+			string(mqtt.HeaterPresetModeConfort),
+		},
+		Device: configPayload.Device,
+	})
+	if err != nil {
+		panic(err)
+	}
 	go client.ListenState(heaterTopics.Read.Temperature, func(data string) {
 	})
 

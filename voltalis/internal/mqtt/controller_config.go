@@ -2,15 +2,6 @@ package mqtt
 
 import "fmt"
 
-type ControllerSelectConfigPayload struct {
-	Name         string     `json:"name"`
-	UniqueID     string     `json:"unique_id"`
-	CommandTopic ReadTopic  `json:"command_topic"`
-	StateTopic   WriteTopic `json:"state_topic"`
-	Options      []string   `json:"options"`
-	Device       DeviceInfo `json:"device"`
-}
-
 var CONTROLLER_DEVICE = DeviceInfo{
 	Identifiers:  []string{"voltalis_controller"},
 	Manufacturer: "Voltalis",
@@ -19,8 +10,8 @@ var CONTROLLER_DEVICE = DeviceInfo{
 	SwVersion:    "0.1.0",
 }
 
-func InstanciateVoltalisControllerSelectConfig(name string, options ...string) *ControllerSelectConfigPayload {
-	return &ControllerSelectConfigPayload{
+func InstanciateVoltalisControllerSelectConfig(name string, options ...string) *SelectConfigPayload {
+	return &SelectConfigPayload{
 		UniqueID:     fmt.Sprintf("voltalis_controller_select_%s", name),
 		Name:         fmt.Sprintf("Controller Select %s", name),
 		CommandTopic: newTopicName[ReadTopic](name),
