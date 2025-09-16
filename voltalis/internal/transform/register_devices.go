@@ -14,14 +14,14 @@ func RegisterDevices(client *mqtt.Client) map[int64]mqtt.HeaterWriteTopics {
 	return result
 }
 
-var VOLTALIS_MODES = []string{"Confort", "Eco", "Hors-Gel", "Manuel", "Arret"}
-
 func registerController(client *mqtt.Client) {
-	configPayload := mqtt.InstanciateVoltalisControllerSelectConfig("mode", VOLTALIS_MODES...)
-	err := client.PublishConfig(mqtt.ComponentSelect, "voltalis_controller", configPayload)
+	controller, err := client.InstanciateController()
 	if err != nil {
 		panic(err)
 	}
+	go client.ListenState(controller.ReadTopics.Command, func(data string) {
+		// Handle controller command state changes
+	})
 }
 func registerHeater(client *mqtt.Client, deviceID int64, name string) mqtt.HeaterWriteTopics {
 	heater, err := client.InstanciateHeater(deviceID, name)

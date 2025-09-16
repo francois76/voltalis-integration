@@ -10,8 +10,8 @@ import (
 type WriteTopic string
 
 // PublishConfig publie une configuration Home Assistant (retained=true)
-func (c *Client) PublishConfig(component component, identifier string, payload any) error {
-	return c.publish(WriteTopic(fmt.Sprintf("homeassistant/%s/%s/config", component, identifier)), true, payload)
+func (c *Client) PublishConfig(payload payload) error {
+	return c.publish(WriteTopic(fmt.Sprintf("homeassistant/%s/%s/config", payload.getComponent(), payload.getIdentifier())), true, payload)
 }
 
 // PublishState publie une mise à jour d'état (retained=false)

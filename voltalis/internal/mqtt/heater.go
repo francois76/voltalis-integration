@@ -6,7 +6,7 @@ import (
 
 // InstanciateVoltalisHeaterClimate crée une nouvelle configuration d'entité climate pour un radiateur Voltalis
 func (c *Client) InstanciateHeater(id int64, name string) (Heater, error) {
-	payload := HeaterConfigPayload{
+	payload := &HeaterConfigPayload{
 		ActionTopic:      newHeaterTopic[WriteTopic](id, "action"),
 		UniqueID:         fmt.Sprintf("voltalis_heater_%d", id),
 		Name:             "Temperature",
@@ -33,22 +33,15 @@ func (c *Client) InstanciateHeater(id int64, name string) (Heater, error) {
 		},
 	}
 
-	if err := c.PublishConfig(ComponentClimate, fmt.Sprintf("voltalis_heater_%d", id), payload); err != nil {
+	if err := c.PublishConfig(payload); err != nil {
 		return Heater{}, fmt.Errorf("failed to publish heater config: %w", err)
 	}
-
-	if err := c.PublishConfig(ComponentSelect, fmt.Sprintf("voltalis_select_%d", id), SelectConfigPayload{
-		UniqueID:     fmt.Sprintf("voltalis_controller_select_%s", name),
-		Name:         fmt.Sprintf("Controller Select %s", name),
-		CommandTopic: payload.PresetModeCommandTopic,
-		StateTopic:   payload.PresetModeStateTopic,
-		Options: []string{
-			string(HeaterPresetModeHorsGel),
-			string(HeaterPresetModeEco),
-			string(HeaterPresetModeConfort),
-		},
-		Device: payload.Device,
-	}); err != nil {
+	selectPresetPayload := getPayloadSelectMode(payload.Device, "select_mode", "Controller select mode", string(HeaterPresetModeHorsGel),
+		string(HeaterPresetModeEco),
+		string(HeaterPresetModeConfort))
+	selectPresetPayload.CommandTopic = payload.PresetModeCommandTopic
+	selectPresetPayload.StateTopic = payload.PresetModeStateTopic
+	if err := c.PublishConfig(selectPresetPayload); err != nil {
 		return Heater{}, fmt.Errorf("failed to publish heater select config: %w", err)
 	}
 	return Heater{
@@ -82,11 +75,11 @@ type HeaterWriteTopics struct {
 }
 
 type Heater struct {
-	heaterConfigPayload HeaterConfigPayload
+	heaterConfigPayload *HeaterConfigPayload
 	ReadTopics          HeaterReadTopics
 	WriteTopics         HeaterWriteTopics
 }
 
 func newHeaterTopic[T Topic](id int64, suffix string) T {
-	return T(fmt.Sprintf("voltalis/heater/%d/%s", id, suffix))
+	return newTopicName[T](fmt.Sprintf("heater/%d/%s", id, suffix))
 }

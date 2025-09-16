@@ -1,5 +1,10 @@
 package mqtt
 
+type payload interface {
+	getIdentifier() string
+	getComponent() component
+}
+
 type HeaterConfigPayload struct {
 	ActionTopic              WriteTopic         `json:"action_topic,omitempty"`
 	Name                     string             `json:"name"`
@@ -21,6 +26,14 @@ type HeaterConfigPayload struct {
 	TemperatureStateTemplate string             `json:"temperature_state_template,omitempty"`
 }
 
+func (p *HeaterConfigPayload) getIdentifier() string {
+	return p.UniqueID
+}
+
+func (p *HeaterConfigPayload) getComponent() component {
+	return ComponentClimate
+}
+
 type SelectConfigPayload struct {
 	Name         string     `json:"name"`
 	UniqueID     string     `json:"unique_id"`
@@ -28,6 +41,14 @@ type SelectConfigPayload struct {
 	StateTopic   WriteTopic `json:"state_topic"`
 	Options      []string   `json:"options"`
 	Device       DeviceInfo `json:"device"`
+}
+
+func (p *SelectConfigPayload) getIdentifier() string {
+	return p.UniqueID
+}
+
+func (p *SelectConfigPayload) getComponent() component {
+	return ComponentSelect
 }
 
 // DeviceInfo représente les informations du périphérique pour Home Assistant
