@@ -10,10 +10,8 @@ var CONTROLLER_DEVICE = DeviceInfo{
 	SwVersion:    "0.1.0",
 }
 
-var VOLTALIS_MODES = []string{"Confort", "Eco", "Hors-Gel", "Manuel", "Arret"}
-
 func (c *Client) InstanciateController() (Controller, error) {
-	configPayload := getPayloadSelectMode(CONTROLLER_DEVICE, "controller", "mode", VOLTALIS_MODES...)
+	configPayload := getPayloadSelectMode(CONTROLLER_DEVICE, "controller", "mode", PRESET_SELECT_CONTROLLER...)
 	err := c.PublishConfig(configPayload)
 	if err != nil {
 		return Controller{}, fmt.Errorf("failed to publish controller config: %w", err)

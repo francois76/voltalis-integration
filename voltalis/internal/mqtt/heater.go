@@ -36,9 +36,7 @@ func (c *Client) InstanciateHeater(id int64, name string) (Heater, error) {
 	if err := c.PublishConfig(payload); err != nil {
 		return Heater{}, fmt.Errorf("failed to publish heater config: %w", err)
 	}
-	selectPresetPayload := getPayloadSelectMode(payload.Device, "select_mode", "Controller select mode", string(HeaterPresetModeHorsGel),
-		string(HeaterPresetModeEco),
-		string(HeaterPresetModeConfort))
+	selectPresetPayload := getPayloadSelectMode(payload.Device, "select_mode", "Controller select mode", PRESET_SELECT_ONE_HEATER...)
 	selectPresetPayload.CommandTopic = payload.PresetModeCommandTopic
 	selectPresetPayload.StateTopic = payload.PresetModeStateTopic
 	if err := c.PublishConfig(selectPresetPayload); err != nil {

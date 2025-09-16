@@ -14,13 +14,16 @@ const (
 type HeaterPresetMode string
 
 const (
-	HeaterPresetModeConfort HeaterPresetMode = "Confort"
-	HeaterPresetModeEco     HeaterPresetMode = "Eco"
-	HeaterPresetModeHorsGel HeaterPresetMode = "Hors-Gel"
-	HeaterPresetModeManuel  HeaterPresetMode = "Manuel"
-	HeaterPresetModeArret   HeaterPresetMode = "Arret"
-	HeaterPresetModeNone    HeaterPresetMode = "none"
+	HeaterPresetModeConfort   HeaterPresetMode = "Confort"
+	HeaterPresetModeEco       HeaterPresetMode = "Eco"
+	HeaterPresetModeHorsGel   HeaterPresetMode = "Hors-Gel"
+	HeaterPresetModeManuel    HeaterPresetMode = "Manuel"
+	HeaterPresetModeAucunMode HeaterPresetMode = "Aucun mode"
+	HeaterPresetModeNone      HeaterPresetMode = "none"
 )
+
+var PRESET_SELECT_ONE_HEATER []HeaterPresetMode = []HeaterPresetMode{HeaterPresetModeConfort, HeaterPresetModeEco, HeaterPresetModeHorsGel}
+var PRESET_SELECT_CONTROLLER []HeaterPresetMode = []HeaterPresetMode{HeaterPresetModeConfort, HeaterPresetModeEco, HeaterPresetModeHorsGel, HeaterPresetModeAucunMode}
 
 type HeaterAction string
 

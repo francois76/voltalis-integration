@@ -13,9 +13,9 @@ func newTopicName[T Topic](base string) T {
 	return T(fmt.Sprintf("voltalis/%s/%s", base, mode))
 }
 
-func getPayloadSelectMode(device DeviceInfo, uniqueIdSuffix, name string, options ...string) *SelectConfigPayload {
+func getPayloadSelectMode[T ~string](device DeviceInfo, uniqueIdSuffix, name string, options ...T) *SelectConfigPayload[T] {
 	identifier := device.Identifiers[0] + "_" + uniqueIdSuffix
-	return &SelectConfigPayload{
+	return &SelectConfigPayload[T]{
 		UniqueID:     identifier,
 		Name:         fmt.Sprintf("Select %s", name),
 		CommandTopic: newTopicName[ReadTopic](identifier),
