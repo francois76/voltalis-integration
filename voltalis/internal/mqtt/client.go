@@ -1,9 +1,15 @@
 package mqtt
 
-import mqtt "github.com/eclipse/paho.mqtt.golang"
+import (
+	"sync"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+)
 
 type Client struct {
 	mqtt.Client
+	stateMutex sync.Mutex
+	stateMap   map[ReadTopic]string // clé = topic, value = dernière valeur lue
 }
 
 func InitClient(broker string, clientID string) (*Client, error) {
@@ -15,5 +21,14 @@ func InitClient(broker string, clientID string) (*Client, error) {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
 	}
-	return &Client{Client: client}, nil
+	return &Client{
+		Client:   client,
+		stateMap: make(map[ReadTopic]string),
+	}, nil
+}
+
+func (c *Client) GetState(topic ReadTopic) string {
+	c.stateMutex.Lock()
+	defer c.stateMutex.Unlock()
+	return c.stateMap[topic]
 }

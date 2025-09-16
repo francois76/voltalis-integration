@@ -7,15 +7,19 @@ const (
 	HeaterModeOff  HeaterMode = "off"
 	HeaterModeAuto HeaterMode = "auto"
 	HeaterModeHeat HeaterMode = "heat"
+	HeaterModeNone HeaterMode = "none"
 )
 
 // PresetModes pour les radiateurs Voltalis
 type HeaterPresetMode string
 
 const (
-	HeaterPresetEco  HeaterPresetMode = "eco"
-	HeaterPresetAway HeaterPresetMode = "away"
-	HeaterPresetHome HeaterPresetMode = "home"
+	HeaterPresetModeConfort HeaterPresetMode = "Confort"
+	HeaterPresetModeEco     HeaterPresetMode = "Eco"
+	HeaterPresetModeHorsGel HeaterPresetMode = "Hors-Gel"
+	HeaterPresetModeManuel  HeaterPresetMode = "Manuel"
+	HeaterPresetModeArret   HeaterPresetMode = "Arret"
+	HeaterPresetModeNone    HeaterPresetMode = "none"
 )
 
 type HeaterAction string
@@ -37,4 +41,4 @@ const (
 	ComponentSelect  component = "select"
 )
 
-const RESET_VALUE = "None"
+const TEMPERATURE_NONE = "None"

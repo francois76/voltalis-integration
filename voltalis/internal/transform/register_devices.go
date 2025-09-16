@@ -33,29 +33,60 @@ func registerHeater(client *mqtt.Client, deviceID int64, name string) mqtt.Heate
 	slog.Info("Discovery config published")
 	heaterTopics := configPayload.GetTopics()
 	go client.ListenState(heaterTopics.Read.Temperature, func(data string) {
-		slog.Info("Target temperature command received", "value", data)
 	})
 
 	go client.ListenState(heaterTopics.Read.PresetMode, func(data string) {
-		slog.Info("Target temperature command received", "value", data)
-		if data == "none" {
-			client.PublishState(heaterTopics.Write.Mode, mqtt.HeaterModeHeat)
-			client.PublishState(heaterTopics.Write.Temperature, 18.0)
-		} else {
-			client.PublishState(heaterTopics.Write.Mode, mqtt.HeaterModeAuto)
-			client.PublishState(heaterTopics.Write.Temperature, "None")
-		}
-		switch mqtt.HeaterPresetMode(data) {
-		case mqtt.HeaterPresetEco:
-			client.PublishState(heaterTopics.Write.Action, mqtt.HeaterActionIdle)
-		case mqtt.HeaterPresetAway:
-			client.PublishState(heaterTopics.Write.Action, mqtt.HeaterActionCooling)
-		case mqtt.HeaterPresetHome:
-			client.PublishState(heaterTopics.Write.Action, mqtt.HeaterActionHeating)
+		recomputeState(client, heaterTopics, data)
+	})
+
+	go client.ListenState(heaterTopics.Read.Mode, func(data string) {
+		switch mqtt.HeaterMode(data) {
+		case mqtt.HeaterModeOff:
+			recomputeState(client, heaterTopics, string(mqtt.HeaterPresetModeNone))
+			client.PublishState(heaterTopics.Write.PresetMode, mqtt.HeaterPresetModeNone)
+		case mqtt.HeaterModeAuto:
+			client.PublishState(heaterTopics.Write.PresetMode, mqtt.HeaterPresetModeConfort)
+		case mqtt.HeaterModeHeat:
+			recomputeState(client, heaterTopics, string(mqtt.HeaterPresetModeNone))
+			client.PublishState(heaterTopics.Write.PresetMode, mqtt.HeaterPresetModeNone)
 		default:
-			slog.Warn("Unknown preset mode received", "value", data)
+			slog.Warn("Unknown mode received", "value", data)
 		}
 	})
 
 	return heaterTopics.Write
+}
+
+func recomputeState(client *mqtt.Client, heaterTopics mqtt.HeaterTopics, data string) {
+	slog.Info("Target preset mode received", "value", data)
+	targetHeaterMode := mqtt.HeaterModeAuto
+	targetTemperature := mqtt.TEMPERATURE_NONE
+	targetAction := mqtt.HeaterActionIdle
+
+	switch mqtt.HeaterPresetMode(data) {
+	case mqtt.HeaterPresetModeNone:
+		// On cherche ici à distinguer 2 cas: soit on a manuellement retiré le preset, dans ce cas on bascule en mode manuel
+		// soit on a mis le mode en off, et dans ce cas on ne fait rien
+		lastMode := client.GetState(heaterTopics.Read.Mode)
+		slog.Debug("Last mode read", "value", lastMode)
+		if lastMode == string(mqtt.HeaterModeOff) {
+			targetAction = mqtt.HeaterActionOff
+			targetHeaterMode = mqtt.HeaterModeOff
+		} else {
+			targetAction = mqtt.HeaterActionHeating
+			targetTemperature = "18"
+			targetHeaterMode = mqtt.HeaterModeHeat
+		}
+	case mqtt.HeaterPresetModeHorsGel:
+		targetAction = mqtt.HeaterActionIdle
+	case mqtt.HeaterPresetModeEco:
+		targetAction = mqtt.HeaterActionCooling
+	case mqtt.HeaterPresetModeConfort:
+		targetAction = mqtt.HeaterActionHeating
+	default:
+		slog.Warn("Unknown preset mode received", "value", data)
+	}
+	client.PublishState(heaterTopics.Write.Action, targetAction)
+	client.PublishState(heaterTopics.Write.Mode, targetHeaterMode)
+	client.PublishState(heaterTopics.Write.Temperature, targetTemperature)
 }

@@ -52,13 +52,14 @@ type HeaterTopics struct {
 
 func InstanciateVoltalisHeaterBaseConfig(id int64) *HeaterConfigPayload {
 	return &HeaterConfigPayload{
-		ActionTopic:             newHeaterTopic[WriteTopic](id, "action"),
-		UniqueID:                fmt.Sprintf("voltalis_heater_%d", id),
-		Name:                    "Temperature",
-		CommandTopic:            newHeaterTopic[WriteTopic](id, "set"),
-		ModeStateTopic:          newHeaterTopic[WriteTopic](id, "mode"),
-		ModeCommandTopic:        newHeaterTopic[ReadTopic](id, "mode"),
-		PresetModes:             []HeaterPresetMode{HeaterPresetEco, HeaterPresetAway, HeaterPresetHome},
+		ActionTopic:      newHeaterTopic[WriteTopic](id, "action"),
+		UniqueID:         fmt.Sprintf("voltalis_heater_%d", id),
+		Name:             "Temperature",
+		CommandTopic:     newHeaterTopic[WriteTopic](id, "set"),
+		ModeStateTopic:   newHeaterTopic[WriteTopic](id, "mode"),
+		ModeCommandTopic: newHeaterTopic[ReadTopic](id, "mode"),
+		PresetModes: []HeaterPresetMode{HeaterPresetModeHorsGel,
+			HeaterPresetModeEco, HeaterPresetModeConfort},
 		PresetModeCommandTopic:  newHeaterTopic[ReadTopic](id, "preset_mode"),
 		PresetModeStateTopic:    newHeaterTopic[WriteTopic](id, "preset_mode"),
 		TemperatureStateTopic:   newHeaterTopic[WriteTopic](id, "temp"),
