@@ -12,8 +12,7 @@ var CONTROLLER_DEVICE = DeviceInfo{
 
 func (c *Client) InstanciateController() (Controller, error) {
 	configPayload := getPayloadSelectMode(CONTROLLER_DEVICE, "controller", "mode", PRESET_SELECT_CONTROLLER...)
-	err := c.PublishConfig(configPayload)
-	if err != nil {
+	if err := c.PublishConfig(configPayload); err != nil {
 		return Controller{}, fmt.Errorf("failed to publish controller config: %w", err)
 	}
 	return Controller{
