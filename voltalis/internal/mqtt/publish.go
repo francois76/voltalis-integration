@@ -17,6 +17,9 @@ func (c *Client) PublishConfig(component component, identifier string, payload a
 // PublishState publie une mise à jour d'état (retained=false)
 // Si une mise a jour d'état tombe en erreur, on ne fait pas tomber le processus complet
 func (c *Client) PublishState(topic WriteTopic, payload any) {
+	if c.GetState(ReadTopic(topic)) == fmt.Sprintf("%v", payload) {
+		return
+	}
 	err := c.publish(topic, false, payload)
 	if err != nil {
 		slog.Error("Failed to publish state", "topic", topic, "error", err)
