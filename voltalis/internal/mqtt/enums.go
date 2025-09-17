@@ -1,8 +1,23 @@
 package mqtt
 
 import (
+	"fmt"
 	"time"
 )
+
+func init() {
+	during := func(n int64, unit string) string {
+		plural := "s"
+		if n == 1 {
+			plural = ""
+		}
+		return fmt.Sprintf("Pendant %d %s%s", n, unit, plural)
+	}
+	for _, i := range []int64{1, 2, 3, 4} {
+		DURATION_NAMES_TO_VALUES[during(i, "heure")] = time.Duration(i) * time.Hour
+	}
+
+}
 
 // Modes pour les radiateurs Voltalis
 type HeaterMode string
@@ -48,11 +63,6 @@ const (
 	ComponentSelect  component = "select"
 )
 
-type selectDuration time.Duration
-
-const (
-	selectDurationOneHour selectDuration = selectDuration(time.Hour)
-	selectDurationTwoHour selectDuration = 2 * selectDurationOneHour
-)
+var DURATION_NAMES_TO_VALUES = map[string]time.Duration{}
 
 const TEMPERATURE_NONE = "None"

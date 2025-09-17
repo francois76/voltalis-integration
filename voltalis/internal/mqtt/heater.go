@@ -44,11 +44,18 @@ func (c *Client) InstanciateHeater(id int64, name string) (Heater, error) {
 	if err := c.PublishConfig(selectPresetPayload); err != nil {
 		return Heater{}, fmt.Errorf("failed to publish heater select config: %w", err)
 	}
+
+	durationPayload := getPayloadSelectDuration(payload.Device)
+	if err := c.PublishConfig(durationPayload); err != nil {
+		return Heater{}, fmt.Errorf("failed to publish heater duration config: %w", err)
+	}
+
 	return Heater{
 		ReadTopics: HeaterReadTopics{
-			Mode:        payload.ModeCommandTopic,
-			PresetMode:  payload.PresetModeCommandTopic,
-			Temperature: payload.TemperatureCommandTopic,
+			Mode:           payload.ModeCommandTopic,
+			PresetMode:     payload.PresetModeCommandTopic,
+			Temperature:    payload.TemperatureCommandTopic,
+			SingleDuration: durationPayload.CommandTopic,
 		},
 		WriteTopics: HeaterWriteTopics{
 			Action:             payload.ActionTopic,
@@ -56,14 +63,16 @@ func (c *Client) InstanciateHeater(id int64, name string) (Heater, error) {
 			PresetMode:         payload.PresetModeStateTopic,
 			Temperature:        payload.TemperatureStateTopic,
 			CurrentTemperature: payload.CurrentTemperatureTopic,
+			SingleDuration:     durationPayload.StateTopic,
 		},
 	}, nil
 }
 
 type HeaterReadTopics struct {
-	Mode        ReadTopic
-	PresetMode  ReadTopic
-	Temperature ReadTopic
+	Mode           ReadTopic
+	PresetMode     ReadTopic
+	Temperature    ReadTopic
+	SingleDuration ReadTopic
 }
 type HeaterWriteTopics struct {
 	Action             WriteTopic
@@ -71,6 +80,7 @@ type HeaterWriteTopics struct {
 	PresetMode         WriteTopic
 	Temperature        WriteTopic
 	CurrentTemperature WriteTopic
+	SingleDuration     WriteTopic
 }
 
 type Heater struct {

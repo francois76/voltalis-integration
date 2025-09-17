@@ -1,6 +1,10 @@
 package mqtt
 
-import "fmt"
+import (
+	"fmt"
+	"maps"
+	"slices"
+)
 
 type Topic interface{ WriteTopic | ReadTopic }
 
@@ -17,7 +21,7 @@ func getPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectCon
 	identifier := device.Identifiers[0] + "_mode"
 	return &SelectConfigPayload[T]{
 		UniqueID:     identifier,
-		Name:         "Select mode",
+		Name:         "Sélectionner le mode",
 		CommandTopic: newTopicName[ReadTopic](identifier),
 		StateTopic:   newTopicName[WriteTopic](identifier),
 		Options:      options,
@@ -25,14 +29,14 @@ func getPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectCon
 	}
 }
 
-func getPayloadSelectDuration[T selectDuration](device DeviceInfo) *SelectConfigPayload[selectDuration] {
+func getPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
 	identifier := device.Identifiers[0] + "_duration"
-	return &SelectConfigPayload[selectDuration]{
+	return &SelectConfigPayload[string]{
 		UniqueID:     identifier,
-		Name:         "Select duration",
+		Name:         "Sélectionner la durée",
 		CommandTopic: newTopicName[ReadTopic](identifier),
 		StateTopic:   newTopicName[WriteTopic](identifier),
-		Options:      []selectDuration{selectDurationOneHour, selectDurationTwoHour},
+		Options:      slices.Collect(maps.Keys(DURATION_NAMES_TO_VALUES)),
 		Device:       device,
 	}
 }
