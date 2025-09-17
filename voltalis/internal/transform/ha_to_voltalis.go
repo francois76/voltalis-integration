@@ -7,21 +7,22 @@ import (
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
 )
 
-func Start(ctx context.Context, client *mqtt.Client) error {
-	if err := client.RegisterController(); err != nil {
+// Start est le point de démarrage de la fonction qui process les évenements MQTT de façon globalisée et appelle les APIs de voltalis pour répliquer les changements
+func Start(ctx context.Context, mqttClient *mqtt.Client) error {
+	if err := mqttClient.RegisterController(); err != nil {
 		return err
 	}
-	if err := client.RegisterHeater(12345678901234, "Salon"); err != nil {
+	if err := mqttClient.RegisterHeater(12345678901234, "Salon"); err != nil {
 		return err
 	}
-	if err := client.RegisterHeater(23456789012345, "Chambre"); err != nil {
+	if err := mqttClient.RegisterHeater(23456789012345, "Chambre"); err != nil {
 		return err
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	stateChanges := client.StateManager.Subscribe()
+	stateChanges := mqttClient.StateManager.Subscribe()
 
 	for {
 		select {
@@ -43,5 +44,4 @@ func Start(ctx context.Context, client *mqtt.Client) error {
 		}
 	}
 
-	return nil
 }

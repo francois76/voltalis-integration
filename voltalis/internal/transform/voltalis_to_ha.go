@@ -4,7 +4,7 @@ import (
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
 )
 
-func SyncVoltalisHeatersToHA(client *mqtt.Client) error {
+func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client) error {
 	// client.PublishState(heaterGetTopics[12345678901234].CurrentTemperature, "19.5")
 	// client.PublishState(heaterGetTopics[12345678901234].Mode, "heat")
 	// client.PublishState(heaterGetTopics[12345678901234].Temperature, "21")
