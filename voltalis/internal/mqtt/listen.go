@@ -9,8 +9,15 @@ import (
 
 type SetTopic string
 
-func (c *Client) ListenState(topic SetTopic, f func(data string)) {
-	c.Client.Subscribe(string(topic), 0, func(client mqtt.Client, msg mqtt.Message) {
+func (c *Client) ListenState(topic SetTopic) {
+	c.ListenStateWithPreHook(topic, nil)
+}
+
+func (c *Client) ListenStateWithPreHook(topic SetTopic, f func(data string)) {
+	if topic == "" {
+		panic("tentative d'écouter un topic vide, verifier que les composant ayant généré ce topic est bien instancié")
+	}
+	go c.Client.Subscribe(string(topic), 0, func(client mqtt.Client, msg mqtt.Message) {
 		data := string(msg.Payload())
 		if c.stateMap[topic] == data {
 			return
@@ -23,7 +30,9 @@ func (c *Client) ListenState(topic SetTopic, f func(data string)) {
 		c.stateMap[topic] = data
 		c.stateMutex.Unlock()
 
-		f(data)
+		if f != nil {
+			f(data)
+		}
 		relatedGetTopic := strings.Replace(msg.Topic(), "/set", "/get", 1)
 		c.PublishState(GetTopic(relatedGetTopic), data)
 	})

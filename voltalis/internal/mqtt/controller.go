@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"fmt"
-	"log/slog"
 )
 
 var CONTROLLER_DEVICE = DeviceInfo{
@@ -19,31 +18,63 @@ func (c *Client) RegisterController() error {
 		GetTopics: ControllerGetTopics{},
 		SetTopics: ControllerSetTopics{},
 	}
-	modePayload := getPayloadSelectMode(CONTROLLER_DEVICE, PRESET_SELECT_CONTROLLER...)
-	if err := controller.PublishConfig(modePayload); err != nil {
-		return fmt.Errorf("failed to publish controller mode config: %w", err)
+
+	if err := controller.addSelectMode(); err != nil {
+		return err
 	}
-	durationPayload := getPayloadSelectDuration(CONTROLLER_DEVICE)
-	if err := controller.PublishConfig(durationPayload); err != nil {
-		return fmt.Errorf("failed to publish controller duration config: %w", err)
+	if err := controller.addSelectDuration(); err != nil {
+		return err
 	}
 
-	programPayload := getPayloadSelectProgram()
-	if err := controller.PublishConfig(programPayload); err != nil {
-		return fmt.Errorf("failed to publish controller program config: %w", err)
+	if err := controller.addSelectProgram(); err != nil {
+		return err
 	}
+	err := controller.addDurationState()
+	if err != nil {
+		return err
+	}
+	controller.ListenState(controller.SetTopics.Mode)
+	controller.ListenState(controller.SetTopics.Duration)
+	return nil
+}
+
+func (controller *Controller) addDurationState() error {
 	statePayload := getPayloadDureeMode(CONTROLLER_DEVICE)
 	if err := controller.PublishConfig(statePayload); err != nil {
 		return fmt.Errorf("failed to publish controller state config: %w", err)
 	}
+	controller.GetTopics.State = statePayload.StateTopic
 	controller.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
-	controller.ListenState(controller.SetTopics.Mode, func(data string) {
-		slog.Debug("received value:", "value", data)
-		// Handle controller command state changes
-	})
-	controller.ListenState(controller.SetTopics.Duration, func(data string) {
-		slog.Debug("received value:", "value", data)
-	})
+	return nil
+}
+
+func (controller *Controller) addSelectProgram() error {
+	programPayload := getPayloadSelectProgram()
+	if err := controller.PublishConfig(programPayload); err != nil {
+		return fmt.Errorf("failed to publish controller program config: %w", err)
+	}
+	controller.GetTopics.Program = programPayload.StateTopic
+	controller.SetTopics.Program = programPayload.CommandTopic
+	return nil
+}
+
+func (c *Controller) addSelectDuration() error {
+	durationPayload := getPayloadSelectDuration(CONTROLLER_DEVICE)
+	if err := c.PublishConfig(durationPayload); err != nil {
+		return fmt.Errorf("failed to publish controller duration config: %w", err)
+	}
+	c.GetTopics.Duration = durationPayload.StateTopic
+	c.SetTopics.Duration = durationPayload.CommandTopic
+	return nil
+}
+
+func (c *Controller) addSelectMode() error {
+	modePayload := getPayloadSelectMode(CONTROLLER_DEVICE, PRESET_SELECT_CONTROLLER...)
+	if err := c.PublishConfig(modePayload); err != nil {
+		return fmt.Errorf("failed to publish controller mode config: %w", err)
+	}
+	c.GetTopics.Mode = modePayload.StateTopic
+	c.SetTopics.Mode = modePayload.CommandTopic
 	return nil
 }
 

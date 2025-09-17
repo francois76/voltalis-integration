@@ -11,6 +11,84 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		GetTopics: HeaterGetTopics{},
 		SetTopics: HeaterSetTopics{},
 	}
+	payload, err := heater.addClimate(id, name)
+	if err != nil {
+		return err
+	}
+
+	if err := heater.addSelectMode(payload); err != nil {
+		return err
+	}
+
+	if err := heater.addSelectDuration(payload); err != nil {
+		return err
+	}
+
+	if err := heater.addDurationState(payload); err != nil {
+		return err
+	}
+	heater.ListenState(heater.SetTopics.Temperature)
+
+	heater.ListenStateWithPreHook(heater.SetTopics.PresetMode, func(data string) {
+		heater.recomputeState(data)
+	})
+
+	heater.ListenStateWithPreHook(heater.SetTopics.Mode, func(data string) {
+		switch HeaterMode(data) {
+		case HeaterModeOff:
+			heater.recomputeState(string(HeaterPresetModeNone))
+			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
+		case HeaterModeAuto:
+			lastPreset := heater.GetState(heater.SetTopics.PresetMode)
+			if lastPreset == string(HeaterPresetModeManuel) || lastPreset == string(HeaterPresetModeNone) {
+				heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeConfort)
+			}
+		case HeaterModeHeat:
+			heater.recomputeState(string(HeaterPresetModeNone))
+			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
+		default:
+			slog.Warn("Unknown mode received", "value", data)
+		}
+	})
+
+	return nil
+}
+
+func (h *Heater) addDurationState(payload *HeaterConfigPayload) error {
+	statePayload := getPayloadDureeMode(payload.Device)
+	if err := h.PublishConfig(statePayload); err != nil {
+		return fmt.Errorf("failed to publish heater state config: %w", err)
+	}
+	h.GetTopics.State = statePayload.StateTopic
+	h.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
+	return nil
+}
+
+func (h *Heater) addSelectDuration(payload *HeaterConfigPayload) error {
+	durationPayload := getPayloadSelectDuration(payload.Device)
+	if err := h.PublishConfig(durationPayload); err != nil {
+		return fmt.Errorf("failed to publish heater duration config: %w", err)
+	}
+	h.GetTopics.SingleDuration = durationPayload.StateTopic
+	h.SetTopics.SingleDuration = durationPayload.CommandTopic
+	return nil
+}
+
+func (h *Heater) addSelectMode(payload *HeaterConfigPayload) error {
+	selectPresetPayload := getPayloadSelectMode(payload.Device, PRESET_SELECT_ONE_HEATER...)
+	// le select de preset est juste un remapping sur le climate. Donc on ne déclare pas de topic dédiés
+	// (on écrase ceux qui sont créés par la méthode au dessus)
+	selectPresetPayload.CommandTopic = payload.PresetModeCommandTopic
+	selectPresetPayload.StateTopic = payload.PresetModeStateTopic
+	if err := h.PublishConfig(selectPresetPayload); err != nil {
+		return fmt.Errorf("failed to publish heater select config: %w", err)
+	}
+	h.GetTopics.Mode = selectPresetPayload.StateTopic
+	h.SetTopics.Mode = selectPresetPayload.CommandTopic
+	return nil
+}
+
+func (h *Heater) addClimate(id int64, name string) (*HeaterConfigPayload, error) {
 	payload := &HeaterConfigPayload{
 		ActionTopic:      newHeaterTopic[GetTopic](id, "action"),
 		UniqueID:         fmt.Sprintf("voltalis_heater_%d", id),
@@ -37,55 +115,10 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 			SwVersion:    "0.1.0",
 		},
 	}
-
-	if err := heater.PublishConfig(payload); err != nil {
-		return fmt.Errorf("failed to publish heater config: %w", err)
+	if err := h.PublishConfig(payload); err != nil {
+		return nil, fmt.Errorf("failed to publish heater config: %w", err)
 	}
-	selectPresetPayload := getPayloadSelectMode(payload.Device, PRESET_SELECT_ONE_HEATER...)
-	// le select de preset est juste un remapping sur le climate. Donc on ne déclare pas de topic dédiés
-	// (on écrase ceux qui sont créés par la méthode au dessus)
-	selectPresetPayload.CommandTopic = payload.PresetModeCommandTopic
-	selectPresetPayload.StateTopic = payload.PresetModeStateTopic
-	if err := heater.PublishConfig(selectPresetPayload); err != nil {
-		return fmt.Errorf("failed to publish heater select config: %w", err)
-	}
-
-	durationPayload := getPayloadSelectDuration(payload.Device)
-	if err := heater.PublishConfig(durationPayload); err != nil {
-		return fmt.Errorf("failed to publish heater duration config: %w", err)
-	}
-
-	statePayload := getPayloadDureeMode(payload.Device)
-	if err := heater.PublishConfig(statePayload); err != nil {
-		return fmt.Errorf("failed to publish heater state config: %w", err)
-	}
-	heater.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
-	heater.ListenState(heater.SetTopics.Temperature, func(data string) {
-	})
-
-	heater.ListenState(heater.SetTopics.PresetMode, func(data string) {
-		heater.recomputeState(data)
-	})
-
-	heater.ListenState(heater.SetTopics.Mode, func(data string) {
-		switch HeaterMode(data) {
-		case HeaterModeOff:
-			heater.recomputeState(string(HeaterPresetModeNone))
-			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
-		case HeaterModeAuto:
-			lastPreset := heater.GetState(heater.SetTopics.PresetMode)
-			if lastPreset == string(HeaterPresetModeManuel) || lastPreset == string(HeaterPresetModeNone) {
-				heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeConfort)
-			}
-		case HeaterModeHeat:
-			heater.recomputeState(string(HeaterPresetModeNone))
-			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
-		default:
-			slog.Warn("Unknown mode received", "value", data)
-		}
-	})
-
-	return nil
+	return payload, nil
 }
 
 func (h *Heater) recomputeState(data string) {
