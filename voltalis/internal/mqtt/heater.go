@@ -6,6 +6,11 @@ import (
 )
 
 func (c *Client) RegisterHeater(id int64, name string) error {
+	heater := Heater{
+		Client:    c,
+		GetTopics: HeaterGetTopics{},
+		SetTopics: HeaterSetTopics{},
+	}
 	payload := &HeaterConfigPayload{
 		ActionTopic:      newHeaterTopic[GetTopic](id, "action"),
 		UniqueID:         fmt.Sprintf("voltalis_heater_%d", id),
@@ -33,7 +38,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		},
 	}
 
-	if err := c.PublishConfig(payload); err != nil {
+	if err := heater.PublishConfig(payload); err != nil {
 		return fmt.Errorf("failed to publish heater config: %w", err)
 	}
 	selectPresetPayload := getPayloadSelectMode(payload.Device, PRESET_SELECT_ONE_HEATER...)
@@ -41,40 +46,40 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 	// (on écrase ceux qui sont créés par la méthode au dessus)
 	selectPresetPayload.CommandTopic = payload.PresetModeCommandTopic
 	selectPresetPayload.StateTopic = payload.PresetModeStateTopic
-	if err := c.PublishConfig(selectPresetPayload); err != nil {
+	if err := heater.PublishConfig(selectPresetPayload); err != nil {
 		return fmt.Errorf("failed to publish heater select config: %w", err)
 	}
 
 	durationPayload := getPayloadSelectDuration(payload.Device)
-	if err := c.PublishConfig(durationPayload); err != nil {
+	if err := heater.PublishConfig(durationPayload); err != nil {
 		return fmt.Errorf("failed to publish heater duration config: %w", err)
 	}
 
 	statePayload := getPayloadDureeMode(payload.Device)
-	if err := c.PublishConfig(statePayload); err != nil {
+	if err := heater.PublishConfig(statePayload); err != nil {
 		return fmt.Errorf("failed to publish heater state config: %w", err)
 	}
-	c.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
-	c.ListenState(heater.SetTopics.Temperature, func(data string) {
+	heater.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
+	heater.ListenState(heater.SetTopics.Temperature, func(data string) {
 	})
 
-	c.ListenState(heater.SetTopics.PresetMode, func(data string) {
-		c.recomputeState(heater, data)
+	heater.ListenState(heater.SetTopics.PresetMode, func(data string) {
+		heater.recomputeState(data)
 	})
 
-	c.ListenState(heater.SetTopics.Mode, func(data string) {
+	heater.ListenState(heater.SetTopics.Mode, func(data string) {
 		switch HeaterMode(data) {
 		case HeaterModeOff:
-			c.recomputeState(heater, string(HeaterPresetModeNone))
-			c.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
+			heater.recomputeState(string(HeaterPresetModeNone))
+			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
 		case HeaterModeAuto:
-			lastPreset := c.GetState(heater.SetTopics.PresetMode)
+			lastPreset := heater.GetState(heater.SetTopics.PresetMode)
 			if lastPreset == string(HeaterPresetModeManuel) || lastPreset == string(HeaterPresetModeNone) {
-				c.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeConfort)
+				heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeConfort)
 			}
 		case HeaterModeHeat:
-			c.recomputeState(heater, string(HeaterPresetModeNone))
-			c.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
+			heater.recomputeState(string(HeaterPresetModeNone))
+			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
 		default:
 			slog.Warn("Unknown mode received", "value", data)
 		}
@@ -83,7 +88,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 	return nil
 }
 
-func (c *Client) recomputeState(data string) {
+func (h *Heater) recomputeState(data string) {
 	slog.Info("Target preset mode received", "value", data)
 	targetHeaterMode := HeaterModeAuto
 	targetTemperature := TEMPERATURE_NONE
@@ -93,7 +98,7 @@ func (c *Client) recomputeState(data string) {
 	case HeaterPresetModeNone:
 		// On cherche ici à distinguer 2 cas: soit on a manuellement retiré le preset, dans ce cas on bascule en mode manuel
 		// soit on a mis le mode en off, et dans ce cas on ne fait rien
-		lastMode := c.GetState(heater.SetTopics.Mode)
+		lastMode := h.GetState(h.SetTopics.Mode)
 		slog.Debug("Last mode read", "value", lastMode)
 		if lastMode == string(HeaterModeOff) {
 			targetAction = HeaterActionOff
@@ -112,9 +117,9 @@ func (c *Client) recomputeState(data string) {
 	default:
 		slog.Warn("Unknown preset mode received", "value", data)
 	}
-	c.PublishState(heater.GetTopics.Action, targetAction)
-	c.PublishState(heater.GetTopics.Mode, targetHeaterMode)
-	c.PublishState(heater.GetTopics.Temperature, targetTemperature)
+	h.PublishState(h.GetTopics.Action, targetAction)
+	h.PublishState(h.GetTopics.Mode, targetHeaterMode)
+	h.PublishState(h.GetTopics.Temperature, targetTemperature)
 }
 
 type HeaterSetTopics struct {
@@ -134,6 +139,7 @@ type HeaterGetTopics struct {
 }
 
 type Heater struct {
+	*Client
 	SetTopics HeaterSetTopics
 	GetTopics HeaterGetTopics
 }

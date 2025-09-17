@@ -14,29 +14,34 @@ var CONTROLLER_DEVICE = DeviceInfo{
 }
 
 func (c *Client) RegisterController() error {
+	controller := Controller{
+		Client:    c,
+		GetTopics: ControllerGetTopics{},
+		SetTopics: ControllerSetTopics{},
+	}
 	modePayload := getPayloadSelectMode(CONTROLLER_DEVICE, PRESET_SELECT_CONTROLLER...)
-	if err := c.PublishConfig(modePayload); err != nil {
+	if err := controller.PublishConfig(modePayload); err != nil {
 		return fmt.Errorf("failed to publish controller mode config: %w", err)
 	}
 	durationPayload := getPayloadSelectDuration(CONTROLLER_DEVICE)
-	if err := c.PublishConfig(durationPayload); err != nil {
+	if err := controller.PublishConfig(durationPayload); err != nil {
 		return fmt.Errorf("failed to publish controller duration config: %w", err)
 	}
 
 	programPayload := getPayloadSelectProgram()
-	if err := c.PublishConfig(programPayload); err != nil {
+	if err := controller.PublishConfig(programPayload); err != nil {
 		return fmt.Errorf("failed to publish controller program config: %w", err)
 	}
 	statePayload := getPayloadDureeMode(CONTROLLER_DEVICE)
-	if err := c.PublishConfig(statePayload); err != nil {
+	if err := controller.PublishConfig(statePayload); err != nil {
 		return fmt.Errorf("failed to publish controller state config: %w", err)
 	}
-	c.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
-	c.ListenState(controller.SetTopics.Mode, func(data string) {
+	controller.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
+	controller.ListenState(controller.SetTopics.Mode, func(data string) {
 		slog.Debug("received value:", "value", data)
 		// Handle controller command state changes
 	})
-	c.ListenState(controller.SetTopics.Duration, func(data string) {
+	controller.ListenState(controller.SetTopics.Duration, func(data string) {
 		slog.Debug("received value:", "value", data)
 	})
 	return nil
@@ -55,6 +60,7 @@ type ControllerGetTopics struct {
 }
 
 type Controller struct {
+	*Client
 	SetTopics ControllerSetTopics
 	GetTopics ControllerGetTopics
 }
