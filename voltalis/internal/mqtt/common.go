@@ -39,7 +39,17 @@ func getPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
 		Name:         "Sélectionner la durée",
 		CommandTopic: newTopicName[ReadTopic](identifier),
 		StateTopic:   newTopicName[WriteTopic](identifier),
-		Options:      slices.Collect(maps.Keys(DURATION_NAMES_TO_VALUES)),
+		Options:      slices.Sorted(maps.Keys(DURATION_NAMES_TO_VALUES)),
 		Device:       device,
+	}
+}
+
+func getPayloadDureeMode(device DeviceInfo) *SensorConfigPayload {
+	identifier := device.Identifiers[0] + "_state"
+	return &SensorConfigPayload{
+		UniqueID:   identifier,
+		Name:       "Durée mode",
+		StateTopic: newTopicName[WriteTopic](identifier),
+		Device:     device,
 	}
 }

@@ -26,6 +26,11 @@ func (c *Client) InstanciateController() (Controller, error) {
 	if err := c.PublishConfig(programPayload); err != nil {
 		return Controller{}, fmt.Errorf("failed to publish controller program config: %w", err)
 	}
+	statePayload := getPayloadDureeMode(CONTROLLER_DEVICE)
+	if err := c.PublishConfig(statePayload); err != nil {
+		return Controller{}, fmt.Errorf("failed to publish controller state config: %w", err)
+	}
+	c.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
 
 	return Controller{
 		ReadTopics: ControllerReadTopics{
@@ -37,6 +42,7 @@ func (c *Client) InstanciateController() (Controller, error) {
 			Mode:     modePayload.StateTopic,
 			Duration: durationPayload.StateTopic,
 			Program:  programPayload.StateTopic,
+			State:    statePayload.StateTopic,
 		},
 	}, nil
 
@@ -51,6 +57,7 @@ type ControllerWriteTopics struct {
 	Mode     WriteTopic
 	Duration WriteTopic
 	Program  WriteTopic
+	State    WriteTopic
 }
 
 type Controller struct {

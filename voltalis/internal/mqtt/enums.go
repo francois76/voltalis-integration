@@ -16,6 +16,7 @@ func init() {
 	for _, i := range []int64{1, 2, 3, 4} {
 		DURATION_NAMES_TO_VALUES[during(i, "heure")] = time.Duration(i) * time.Hour
 	}
+	DURATION_NAMES_TO_VALUES["Jusqu'à ce que je change d'avis"] = time.Duration(0)
 
 }
 
@@ -61,6 +62,7 @@ type component string
 const (
 	ComponentClimate component = "climate"
 	ComponentSelect  component = "select"
+	ComponentSensor  component = "sensor"
 )
 
 var DURATION_NAMES_TO_VALUES = map[string]time.Duration{}

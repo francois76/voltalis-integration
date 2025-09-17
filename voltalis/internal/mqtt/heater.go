@@ -50,6 +50,12 @@ func (c *Client) InstanciateHeater(id int64, name string) (Heater, error) {
 		return Heater{}, fmt.Errorf("failed to publish heater duration config: %w", err)
 	}
 
+	statePayload := getPayloadDureeMode(payload.Device)
+	if err := c.PublishConfig(statePayload); err != nil {
+		return Heater{}, fmt.Errorf("failed to publish heater state config: %w", err)
+	}
+	c.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
+
 	return Heater{
 		ReadTopics: HeaterReadTopics{
 			Mode:           payload.ModeCommandTopic,
@@ -64,6 +70,7 @@ func (c *Client) InstanciateHeater(id int64, name string) (Heater, error) {
 			Temperature:        payload.TemperatureStateTopic,
 			CurrentTemperature: payload.CurrentTemperatureTopic,
 			SingleDuration:     durationPayload.StateTopic,
+			State:              statePayload.StateTopic,
 		},
 	}, nil
 }
@@ -81,6 +88,7 @@ type HeaterWriteTopics struct {
 	Temperature        WriteTopic
 	CurrentTemperature WriteTopic
 	SingleDuration     WriteTopic
+	State              WriteTopic
 }
 
 type Heater struct {
