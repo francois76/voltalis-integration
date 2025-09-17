@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"fmt"
+	"log/slog"
 )
 
 var CONTROLLER_DEVICE = DeviceInfo{
@@ -12,57 +13,50 @@ var CONTROLLER_DEVICE = DeviceInfo{
 	SwVersion:    "0.1.0",
 }
 
-func (c *Client) InstanciateController() (Controller, error) {
+func (c *Client) RegisterController() error {
 	modePayload := getPayloadSelectMode(CONTROLLER_DEVICE, PRESET_SELECT_CONTROLLER...)
 	if err := c.PublishConfig(modePayload); err != nil {
-		return Controller{}, fmt.Errorf("failed to publish controller mode config: %w", err)
+		return fmt.Errorf("failed to publish controller mode config: %w", err)
 	}
 	durationPayload := getPayloadSelectDuration(CONTROLLER_DEVICE)
 	if err := c.PublishConfig(durationPayload); err != nil {
-		return Controller{}, fmt.Errorf("failed to publish controller duration config: %w", err)
+		return fmt.Errorf("failed to publish controller duration config: %w", err)
 	}
 
 	programPayload := getPayloadSelectProgram()
 	if err := c.PublishConfig(programPayload); err != nil {
-		return Controller{}, fmt.Errorf("failed to publish controller program config: %w", err)
+		return fmt.Errorf("failed to publish controller program config: %w", err)
 	}
 	statePayload := getPayloadDureeMode(CONTROLLER_DEVICE)
 	if err := c.PublishConfig(statePayload); err != nil {
-		return Controller{}, fmt.Errorf("failed to publish controller state config: %w", err)
+		return fmt.Errorf("failed to publish controller state config: %w", err)
 	}
 	c.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
-
-	return Controller{
-		ReadTopics: ControllerReadTopics{
-			Mode:     modePayload.CommandTopic,
-			Duration: durationPayload.CommandTopic,
-			Program:  programPayload.CommandTopic,
-		},
-		WriteTopics: ControllerWriteTopics{
-			Mode:     modePayload.StateTopic,
-			Duration: durationPayload.StateTopic,
-			Program:  programPayload.StateTopic,
-			State:    statePayload.StateTopic,
-		},
-	}, nil
-
+	c.ListenState(controller.SetTopics.Mode, func(data string) {
+		slog.Debug("received value:", "value", data)
+		// Handle controller command state changes
+	})
+	c.ListenState(controller.SetTopics.Duration, func(data string) {
+		slog.Debug("received value:", "value", data)
+	})
+	return nil
 }
 
-type ControllerReadTopics struct {
-	Mode     ReadTopic
-	Duration ReadTopic
-	Program  ReadTopic
+type ControllerSetTopics struct {
+	Mode     SetTopic
+	Duration SetTopic
+	Program  SetTopic
 }
-type ControllerWriteTopics struct {
-	Mode     WriteTopic
-	Duration WriteTopic
-	Program  WriteTopic
-	State    WriteTopic
+type ControllerGetTopics struct {
+	Mode     GetTopic
+	Duration GetTopic
+	Program  GetTopic
+	State    GetTopic
 }
 
 type Controller struct {
-	ReadTopics  ControllerReadTopics
-	WriteTopics ControllerWriteTopics
+	SetTopics ControllerSetTopics
+	GetTopics ControllerGetTopics
 }
 
 func getPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
@@ -70,8 +64,8 @@ func getPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
 	return &SelectConfigPayload[string]{
 		UniqueID:     identifier,
 		Name:         "Sélectionner le programme",
-		CommandTopic: newTopicName[ReadTopic](identifier),
-		StateTopic:   newTopicName[WriteTopic](identifier),
+		CommandTopic: newTopicName[SetTopic](identifier),
+		StateTopic:   newTopicName[GetTopic](identifier),
 		Options:      append([]string{"Aucun programme"}, options...),
 		Device:       CONTROLLER_DEVICE,
 	}

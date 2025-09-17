@@ -7,16 +7,16 @@ import (
 	"reflect"
 )
 
-type WriteTopic string
+type GetTopic string
 
 // PublishConfig publie une configuration Home Assistant (retained=true)
 func (c *Client) PublishConfig(payload payload) error {
-	return c.publish(WriteTopic(fmt.Sprintf("homeassistant/%s/%s/config", payload.getComponent(), payload.getIdentifier())), true, payload)
+	return c.publish(GetTopic(fmt.Sprintf("homeassistant/%s/%s/config", payload.getComponent(), payload.getIdentifier())), true, payload)
 }
 
 // PublishState publie une mise à jour d'état (retained=false)
 // Si une mise a jour d'état tombe en erreur, on ne fait pas tomber le processus complet
-func (c *Client) PublishState(topic WriteTopic, payload any) {
+func (c *Client) PublishState(topic GetTopic, payload any) {
 	err := c.publish(topic, false, payload)
 	if err != nil {
 		slog.Error("Failed to publish state", "topic", topic, "error", err)
@@ -26,7 +26,7 @@ func (c *Client) PublishState(topic WriteTopic, payload any) {
 // publish publie sur MQTT :
 // - Si T est une struct/pointeur de struct, on fait un json.Marshal
 // - Si T est un type primitif (string, []byte, int, float, bool), on l'envoie directement
-func (c *Client) publish(topic WriteTopic, retained bool, payload any) error {
+func (c *Client) publish(topic GetTopic, retained bool, payload any) error {
 	var data []byte
 	var err error
 

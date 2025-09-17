@@ -7,12 +7,12 @@ import (
 	"slices"
 )
 
-type Topic interface{ WriteTopic | ReadTopic }
+type Topic interface{ GetTopic | SetTopic }
 
 func newTopicName[T Topic](base string) T {
 	mode := "set"
 	// si c'est un writeTopic on suffixe par get, sinon set
-	if _, ok := any(*new(T)).(WriteTopic); ok {
+	if _, ok := any(*new(T)).(GetTopic); ok {
 		mode = "get"
 	}
 	result := T(fmt.Sprintf("voltalis/%s/%s", base, mode))
@@ -25,8 +25,8 @@ func getPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectCon
 	return &SelectConfigPayload[T]{
 		UniqueID:     identifier,
 		Name:         "Sélectionner le mode",
-		CommandTopic: newTopicName[ReadTopic](identifier),
-		StateTopic:   newTopicName[WriteTopic](identifier),
+		CommandTopic: newTopicName[SetTopic](identifier),
+		StateTopic:   newTopicName[GetTopic](identifier),
 		Options:      options,
 		Device:       device,
 	}
@@ -37,8 +37,8 @@ func getPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
 	return &SelectConfigPayload[string]{
 		UniqueID:     identifier,
 		Name:         "Sélectionner la durée",
-		CommandTopic: newTopicName[ReadTopic](identifier),
-		StateTopic:   newTopicName[WriteTopic](identifier),
+		CommandTopic: newTopicName[SetTopic](identifier),
+		StateTopic:   newTopicName[GetTopic](identifier),
 		Options:      slices.Sorted(maps.Keys(DURATION_NAMES_TO_VALUES)),
 		Device:       device,
 	}
@@ -49,7 +49,7 @@ func getPayloadDureeMode(device DeviceInfo) *SensorConfigPayload {
 	return &SensorConfigPayload{
 		UniqueID:   identifier,
 		Name:       "Durée mode",
-		StateTopic: newTopicName[WriteTopic](identifier),
+		StateTopic: newTopicName[GetTopic](identifier),
 		Device:     device,
 	}
 }

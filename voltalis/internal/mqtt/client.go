@@ -9,7 +9,7 @@ import (
 type Client struct {
 	mqtt.Client
 	stateMutex sync.Mutex
-	stateMap   map[ReadTopic]string // clé = topic, value = dernière valeur lue
+	stateMap   map[SetTopic]string // clé = topic, value = dernière valeur lue
 }
 
 func InitClient(broker string, clientID string) (*Client, error) {
@@ -23,11 +23,11 @@ func InitClient(broker string, clientID string) (*Client, error) {
 	}
 	return &Client{
 		Client:   client,
-		stateMap: make(map[ReadTopic]string),
+		stateMap: make(map[SetTopic]string),
 	}, nil
 }
 
-func (c *Client) GetState(topic ReadTopic) string {
+func (c *Client) GetState(topic SetTopic) string {
 	c.stateMutex.Lock()
 	defer c.stateMutex.Unlock()
 	return c.stateMap[topic]

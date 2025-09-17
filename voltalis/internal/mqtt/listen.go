@@ -7,9 +7,9 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-type ReadTopic string
+type SetTopic string
 
-func (c *Client) ListenState(topic ReadTopic, f func(data string)) {
+func (c *Client) ListenState(topic SetTopic, f func(data string)) {
 	c.Client.Subscribe(string(topic), 0, func(client mqtt.Client, msg mqtt.Message) {
 		data := string(msg.Payload())
 		if c.stateMap[topic] == data {
@@ -24,7 +24,7 @@ func (c *Client) ListenState(topic ReadTopic, f func(data string)) {
 		c.stateMutex.Unlock()
 
 		f(data)
-		relatedWriteTopic := strings.Replace(msg.Topic(), "/set", "/get", 1)
-		c.PublishState(WriteTopic(relatedWriteTopic), data)
+		relatedGetTopic := strings.Replace(msg.Topic(), "/set", "/get", 1)
+		c.PublishState(GetTopic(relatedGetTopic), data)
 	})
 }

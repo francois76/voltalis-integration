@@ -15,9 +15,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	heaterTopics := transform.RegisterDevices(client)
+	if err := transform.RegisterDevices(client); err != nil {
+		panic(err)
+	}
 	scheduler.Run(15*time.Second, func() {
-		transform.SyncVoltalisHeatersToHA(client, heaterTopics)
+		transform.SyncVoltalisHeatersToHA(client)
 	})
 
 }
