@@ -7,17 +7,11 @@ import (
 	"log"
 	"reflect"
 	"sync"
-	"time"
 )
 
 // ResourceState représente l'état global de votre ressource
 type ResourceState struct {
-	ID          string                 `json:"id"`
-	Status      string                 `json:"status"`
-	Temperature float64                `json:"temperature"`
-	Humidity    float64                `json:"humidity"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Timestamp   time.Time              `json:"timestamp"`
+	ID int64 `json:"id"`
 }
 
 // StateChange représente un changement d'état avec les valeurs modifiées
@@ -57,22 +51,7 @@ func (sm *StateManager) Subscribe() <-chan StateChange {
 
 // computeStateHash calcule un hash de l'état pour la déduplication
 func (sm *StateManager) computeStateHash(state ResourceState) string {
-	// On exclut le timestamp du hash pour éviter des changements constants
-	stateForHash := struct {
-		ID          string                 `json:"id"`
-		Status      string                 `json:"status"`
-		Temperature float64                `json:"temperature"`
-		Humidity    float64                `json:"humidity"`
-		Metadata    map[string]interface{} `json:"metadata"`
-	}{
-		ID:          state.ID,
-		Status:      state.Status,
-		Temperature: state.Temperature,
-		Humidity:    state.Humidity,
-		Metadata:    state.Metadata,
-	}
-
-	data, _ := json.Marshal(stateForHash)
+	data, _ := json.Marshal(state)
 	hash := sha256.Sum256(data)
 	return fmt.Sprintf("%x", hash)
 }
@@ -114,7 +93,6 @@ func (sm *StateManager) UpdateState(newState ResourceState) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	newState.Timestamp = time.Now()
 	currentHash := sm.computeStateHash(newState)
 
 	// Vérification de déduplication

@@ -33,6 +33,9 @@ func (c *Client) ListenStateWithPreHook(topic SetTopic, f func(data string)) {
 		if f != nil {
 			f(data)
 		}
+		currentState := c.StateManager.GetCurrentState()
+		currentState.ID++
+		c.StateManager.UpdateState(*currentState)
 		relatedGetTopic := strings.Replace(msg.Topic(), "/set", "/get", 1)
 		c.PublishState(GetTopic(relatedGetTopic), data)
 	})
