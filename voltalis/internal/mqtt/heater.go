@@ -28,6 +28,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		return err
 	}
 	heater.ListenState(heater.SetTopics.Temperature)
+	heater.ListenState(heater.SetTopics.SingleDuration)
 
 	heater.ListenStateWithPreHook(heater.SetTopics.PresetMode, func(data string) {
 		heater.recomputeState(data)
@@ -83,8 +84,6 @@ func (h *Heater) addSelectMode(payload *HeaterConfigPayload) error {
 	if err := h.PublishConfig(selectPresetPayload); err != nil {
 		return fmt.Errorf("failed to publish heater select config: %w", err)
 	}
-	h.GetTopics.Mode = selectPresetPayload.StateTopic
-	h.SetTopics.Mode = selectPresetPayload.CommandTopic
 	return nil
 }
 
@@ -119,6 +118,13 @@ func (h *Heater) addClimate(id int64, name string) (*HeaterConfigPayload, error)
 		return nil, fmt.Errorf("failed to publish heater config: %w", err)
 	}
 	h.GetTopics.Action = payload.ActionTopic
+	h.GetTopics.Mode = payload.ModeStateTopic
+	h.SetTopics.Mode = payload.ModeCommandTopic
+	h.GetTopics.Temperature = payload.TemperatureStateTopic
+	h.SetTopics.Temperature = payload.TemperatureCommandTopic
+	h.SetTopics.PresetMode = payload.PresetModeCommandTopic
+	h.GetTopics.PresetMode = payload.PresetModeStateTopic
+	h.GetTopics.CurrentTemperature = payload.CurrentTemperatureTopic
 	return payload, nil
 }
 

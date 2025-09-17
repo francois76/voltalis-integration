@@ -7,7 +7,7 @@ import (
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
 )
 
-func Start(client *mqtt.Client) error {
+func Start(ctx context.Context, client *mqtt.Client) error {
 	if err := client.RegisterController(); err != nil {
 		return err
 	}
@@ -18,32 +18,30 @@ func Start(client *mqtt.Client) error {
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	stateChanges := client.StateManager.Subscribe()
 
-	// Goroutine pour traiter les changements d'état
-	go func() {
-		for {
-			select {
-			case change := <-stateChanges:
-				fmt.Printf("🔄 Changement détecté!\n")
-				fmt.Printf("   Hash précédent: %s\n", change.PreviousHash[:8]+"...")
-				fmt.Printf("   Hash actuel: %s\n", change.CurrentHash[:8]+"...")
-				fmt.Printf("   État actuel: %+v\n", change.CurrentState)
-				fmt.Printf("   Champs modifiés: %+v\n", change.ChangedFields)
+	for {
+		select {
+		case change := <-stateChanges:
+			fmt.Printf("🔄 Changement détecté!\n")
+			fmt.Printf("   Hash précédent: %s\n", change.PreviousHash[:8]+"...")
+			fmt.Printf("   Hash actuel: %s\n", change.CurrentHash[:8]+"...")
+			fmt.Printf("   État actuel: %+v\n", change.CurrentState)
+			fmt.Printf("   Champs modifiés: %+v\n", change.ChangedFields)
 
-				// Ici vous pourriez traiter les changements
-				// - Sauvegarder en base
-				// - Envoyer des alertes
-				// - Déclencher des actions
+			// Ici vous pourriez traiter les changements
+			// - Sauvegarder en base
+			// - Envoyer des alertes
+			// - Déclencher des actions
 
-			case <-ctx.Done():
-				return
-			}
+		case <-ctx.Done():
+			fmt.Println("context killed")
+			return nil
 		}
-	}()
+	}
 
 	return nil
 }

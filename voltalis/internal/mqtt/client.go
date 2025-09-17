@@ -22,10 +22,14 @@ func InitClient(broker string, clientID string) (*Client, error) {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
 	}
+	stateManager := NewStateManager()
+	stateManager.UpdateState(ResourceState{
+		ID: 0,
+	})
 	return &Client{
 		Client:       client,
 		stateMap:     make(map[SetTopic]string),
-		StateManager: NewStateManager(),
+		StateManager: stateManager,
 	}, nil
 }
 

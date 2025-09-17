@@ -35,6 +35,7 @@ func (c *Client) RegisterController() error {
 	}
 	controller.ListenState(controller.SetTopics.Mode)
 	controller.ListenState(controller.SetTopics.Duration)
+	controller.ListenState(controller.SetTopics.Program)
 	return nil
 }
 

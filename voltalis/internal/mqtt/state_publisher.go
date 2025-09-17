@@ -134,6 +134,7 @@ func (sm *StateManager) notifySubscribers(change StateChange) {
 	for _, subscriber := range sm.subscribers {
 		select {
 		case subscriber <- change:
+			fmt.Println(subscriber)
 			// Envoi réussi
 		default:
 			log.Println("Abonné occupé, changement ignoré")
