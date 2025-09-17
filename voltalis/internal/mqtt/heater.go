@@ -118,6 +118,7 @@ func (h *Heater) addClimate(id int64, name string) (*HeaterConfigPayload, error)
 	if err := h.PublishConfig(payload); err != nil {
 		return nil, fmt.Errorf("failed to publish heater config: %w", err)
 	}
+	h.GetTopics.Action = payload.ActionTopic
 	return payload, nil
 }
 

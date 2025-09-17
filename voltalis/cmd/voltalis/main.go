@@ -15,7 +15,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if err := transform.RegisterDevices(client); err != nil {
+	if err := transform.Start(client); err != nil {
 		panic(err)
 	}
 	scheduler.Run(15*time.Second, func() {

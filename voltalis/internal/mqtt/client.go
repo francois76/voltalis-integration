@@ -8,8 +8,9 @@ import (
 
 type Client struct {
 	mqtt.Client
-	stateMutex sync.Mutex
-	stateMap   map[SetTopic]string // clé = topic, value = dernière valeur lue
+	stateMutex   sync.Mutex
+	stateMap     map[SetTopic]string // clé = topic, value = dernière valeur lue
+	StateManager *StateManager
 }
 
 func InitClient(broker string, clientID string) (*Client, error) {
@@ -22,8 +23,9 @@ func InitClient(broker string, clientID string) (*Client, error) {
 		return nil, token.Error()
 	}
 	return &Client{
-		Client:   client,
-		stateMap: make(map[SetTopic]string),
+		Client:       client,
+		stateMap:     make(map[SetTopic]string),
+		StateManager: NewStateManager(),
 	}, nil
 }
 
