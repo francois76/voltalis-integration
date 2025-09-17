@@ -20,6 +20,7 @@ func registerController(client *mqtt.Client) {
 		panic(err)
 	}
 	go client.ListenState(controller.ReadTopics.Mode, func(data string) {
+		slog.Debug("received value:", "value", data)
 		// Handle controller command state changes
 	})
 	go client.ListenState(controller.ReadTopics.Duration, func(data string) {

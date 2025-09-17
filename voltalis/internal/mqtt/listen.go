@@ -24,7 +24,7 @@ func (c *Client) ListenState(topic ReadTopic, f func(data string)) {
 		c.stateMutex.Unlock()
 
 		f(data)
-		relatedWriteTopic := strings.Replace(msg.Topic(), "/get", "/set", 1)
+		relatedWriteTopic := strings.Replace(msg.Topic(), "/set", "/get", 1)
 		c.PublishState(WriteTopic(relatedWriteTopic), data)
 	})
 }

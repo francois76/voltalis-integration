@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"fmt"
+	"log/slog"
 	"maps"
 	"slices"
 )
@@ -11,10 +12,12 @@ type Topic interface{ WriteTopic | ReadTopic }
 func newTopicName[T Topic](base string) T {
 	mode := "set"
 	// si c'est un writeTopic on suffixe par get, sinon set
-	if _, ok := any(new(T)).(WriteTopic); ok {
+	if _, ok := any(*new(T)).(WriteTopic); ok {
 		mode = "get"
 	}
-	return T(fmt.Sprintf("voltalis/%s/%s", base, mode))
+	result := T(fmt.Sprintf("voltalis/%s/%s", base, mode))
+	slog.With("result", result).Debug("instanciating ")
+	return result
 }
 
 func getPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectConfigPayload[T] {
