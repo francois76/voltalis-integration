@@ -40,15 +40,15 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
 			dataFloat, err := strconv.ParseFloat(data, 64)
 			if err != nil {
-				heaterState.Temperature = nil
+				heaterState.Temperature = -1
 			} else {
-				heaterState.Temperature = &dataFloat
+				heaterState.Temperature = dataFloat
 			}
 		})
 	})
 	heater.ListenState(heater.SetTopics.SingleDuration, func(currentState *ResourceState, data string) {
 		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
-			heaterState.Duration = &data
+			heaterState.Duration = data
 		})
 	})
 
@@ -56,7 +56,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		heater.recomputeState(data)
 	}, func(currentState *ResourceState, data string) {
 		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
-			heaterState.Mode = &data
+			heaterState.Mode = data
 		})
 	})
 

@@ -34,13 +34,13 @@ func (c *Client) RegisterController() error {
 		return err
 	}
 	controller.ListenState(controller.SetTopics.Mode, func(currentState *ResourceState, data string) {
-		currentState.ControllerState.Mode = &data
+		currentState.ControllerState.Mode = data
 	})
 	controller.ListenState(controller.SetTopics.Duration, func(currentState *ResourceState, data string) {
-		currentState.ControllerState.Duration = &data
+		currentState.ControllerState.Duration = data
 	})
 	controller.ListenState(controller.SetTopics.Program, func(currentState *ResourceState, data string) {
-		currentState.ControllerState.Program = &data
+		currentState.ControllerState.Program = data
 	})
 	return nil
 }

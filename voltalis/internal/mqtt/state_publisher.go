@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"maps"
 	"sync"
 )
@@ -16,15 +17,15 @@ type ResourceState struct {
 }
 
 type ControllerState struct {
-	Duration *string
-	Mode     *string
-	Program  *string
+	Duration string
+	Mode     string
+	Program  string
 }
 
 type HeaterState struct {
-	Duration    *string
-	Mode        *string
-	Temperature *float64
+	Duration    string
+	Mode        string
+	Temperature float64
 }
 
 // Interface pour les types qui peuvent être comparés
@@ -37,13 +38,13 @@ func (cs ControllerState) Compare(other Comparable) map[string]interface{} {
 	otherCS := other.(ControllerState)
 	changes := make(map[string]interface{})
 
-	if !comparePointers(cs.Duration, otherCS.Duration) {
+	if cs.Duration != otherCS.Duration {
 		changes["Duration"] = otherCS.Duration
 	}
-	if !comparePointers(cs.Mode, otherCS.Mode) {
+	if cs.Mode != otherCS.Mode {
 		changes["Mode"] = otherCS.Mode
 	}
-	if !comparePointers(cs.Program, otherCS.Program) {
+	if cs.Program != otherCS.Program {
 		changes["Program"] = otherCS.Program
 	}
 
@@ -54,13 +55,13 @@ func (cs ControllerState) Compare(other Comparable) map[string]interface{} {
 func (hs HeaterState) Compare(other Comparable) map[string]interface{} {
 	otherHS := other.(HeaterState)
 	changes := make(map[string]interface{})
-	if !comparePointers(hs.Duration, otherHS.Duration) {
+	if hs.Duration != otherHS.Duration {
 		changes["Duration"] = otherHS.Duration
 	}
-	if !comparePointers(hs.Mode, otherHS.Mode) {
+	if hs.Mode != otherHS.Mode {
 		changes["Mode"] = otherHS.Mode
 	}
-	if !comparePointers(hs.Temperature, otherHS.Temperature) {
+	if hs.Temperature != otherHS.Temperature {
 		changes["Temperature"] = otherHS.Temperature
 	}
 
@@ -172,7 +173,6 @@ func (sm *StateManager) Subscribe() <-chan StateChange {
 
 // computeStateHash calcule un hash de l'état pour la déduplication
 func (sm *StateManager) computeStateHash(state ResourceState) string {
-	fmt.Println(state)
 	data, _ := json.Marshal(state)
 	hash := sha256.Sum256(data)
 	return fmt.Sprintf("%x", hash)
@@ -224,10 +224,9 @@ func (sm *StateManager) notifySubscribers(change StateChange) {
 	for _, subscriber := range sm.subscribers {
 		select {
 		case subscriber <- change:
-			fmt.Println(subscriber)
 			// Envoi réussi
 		default:
-			log.Println("Abonné occupé, changement ignoré")
+			slog.Info("Abonné occupé, changement ignoré")
 		}
 	}
 }

@@ -2,7 +2,7 @@ package transform
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
 )
@@ -27,19 +27,10 @@ func Start(ctx context.Context, mqttClient *mqtt.Client) error {
 	for {
 		select {
 		case change := <-stateChanges:
-			fmt.Printf("🔄 Changement détecté!\n")
-			fmt.Printf("   Hash précédent: %s\n", change.PreviousHash[:8]+"...")
-			fmt.Printf("   Hash actuel: %s\n", change.CurrentHash[:8]+"...")
-			fmt.Printf("   État actuel: %+v\n", change.CurrentState)
-			fmt.Printf("   Champs modifiés: %+v\n", change.ChangedFields)
-
-			// Ici vous pourriez traiter les changements
-			// - Sauvegarder en base
-			// - Envoyer des alertes
-			// - Déclencher des actions
+			slog.With("change", change.ChangedFields).Debug("champs modifiés")
 
 		case <-ctx.Done():
-			fmt.Println("context killed")
+			slog.Warn("context killed")
 			return nil
 		}
 	}
