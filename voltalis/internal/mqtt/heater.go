@@ -66,15 +66,11 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 			heater.recomputeState(string(HeaterPresetModeNone))
 			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
 		case HeaterModeAuto:
-			lastPreset := heater.GetTopicState(heater.SetTopics.PresetMode)
-			if lastPreset == string(HeaterPresetModeManuel) || lastPreset == string(HeaterPresetModeNone) {
-				heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeConfort)
-			} else {
-				fmt.Println("on était deja en mode auto sur le preset + " + lastPreset)
-			}
+			heater.recomputeState(string(HeaterPresetModeConfort))
+			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeConfort)
 		case HeaterModeHeat:
-			heater.recomputeState(string(HeaterPresetModeNone))
 			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
+			heater.recomputeState(string(HeaterPresetModeNone))
 		default:
 			slog.Warn("Unknown mode received", "value", data)
 		}
