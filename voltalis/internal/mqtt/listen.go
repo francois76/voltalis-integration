@@ -9,17 +9,17 @@ import (
 
 type SetTopic string
 
-func (c *Client) ListenState(topic SetTopic) {
-	c.ListenStateWithPreHook(topic, nil)
+func (c *Client) ListenState(topic SetTopic, publishState func(currentState *ResourceState, data string)) {
+	c.ListenStateWithPreHook(topic, nil, publishState)
 }
 
-func (c *Client) ListenStateWithPreHook(topic SetTopic, f func(data string)) {
+func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string), publishState func(currentState *ResourceState, data string)) {
 	if topic == "" {
 		panic("tentative d'écouter un topic vide, verifier que les composant ayant généré ce topic est bien instancié")
 	}
 	go c.Client.Subscribe(string(topic), 0, func(client mqtt.Client, msg mqtt.Message) {
 		data := string(msg.Payload())
-		if c.stateMap[topic] == data {
+		if c.stateTopicMap[topic] == data {
 			return
 		}
 		childlog := slog.With("topic", msg.Topic(), "data", data)
@@ -27,15 +27,15 @@ func (c *Client) ListenStateWithPreHook(topic SetTopic, f func(data string)) {
 
 		// MAJ état global
 		c.stateMutex.Lock()
-		c.stateMap[topic] = data
+		c.stateTopicMap[topic] = data
 		c.stateMutex.Unlock()
 
-		if f != nil {
-			f(data)
+		if preHook != nil {
+			preHook(data)
 		}
 		currentState := c.StateManager.GetCurrentState()
-		currentState.ID++
-		c.StateManager.UpdateState(*currentState)
+		publishState(&currentState, data)
+		c.StateManager.UpdateState(currentState)
 		relatedGetTopic := strings.Replace(msg.Topic(), "/set", "/get", 1)
 		c.PublishState(GetTopic(relatedGetTopic), data)
 	})

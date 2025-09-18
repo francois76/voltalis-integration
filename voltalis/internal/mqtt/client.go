@@ -8,9 +8,9 @@ import (
 
 type Client struct {
 	mqtt.Client
-	stateMutex   sync.Mutex
-	stateMap     map[SetTopic]string // clé = topic, value = dernière valeur lue
-	StateManager *StateManager
+	stateMutex    sync.Mutex
+	stateTopicMap map[SetTopic]string // possède la dernière valeur set par HA sur chaque topic
+	StateManager  *StateManager       // machine à état de plus haut niveau ne renvoyant à l'exterieur que les données à renvoyer à voltalis
 }
 
 func InitClient(broker string, clientID string) (*Client, error) {
@@ -24,17 +24,18 @@ func InitClient(broker string, clientID string) (*Client, error) {
 	}
 	stateManager := NewStateManager()
 	stateManager.UpdateState(ResourceState{
-		ID: 0,
+		ControllerState: ControllerState{},
+		HeaterState:     map[int64]HeaterState{},
 	})
 	return &Client{
-		Client:       client,
-		stateMap:     make(map[SetTopic]string),
-		StateManager: stateManager,
+		Client:        client,
+		stateTopicMap: make(map[SetTopic]string),
+		StateManager:  stateManager,
 	}, nil
 }
 
-func (c *Client) GetState(topic SetTopic) string {
+func (c *Client) GetTopicState(topic SetTopic) string {
 	c.stateMutex.Lock()
 	defer c.stateMutex.Unlock()
-	return c.stateMap[topic]
+	return c.stateTopicMap[topic]
 }

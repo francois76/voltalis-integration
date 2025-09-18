@@ -3,6 +3,7 @@ package mqtt
 import (
 	"fmt"
 	"log/slog"
+	"strconv"
 )
 
 func (c *Client) RegisterHeater(id int64, name string) error {
@@ -11,6 +12,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		GetTopics: HeaterGetTopics{},
 		SetTopics: HeaterSetTopics{},
 	}
+	c.StateManager.currentState.HeaterState[id] = HeaterState{}
 	payload, err := heater.addClimate(id, name)
 	if err != nil {
 		return err
@@ -27,11 +29,35 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 	if err := heater.addDurationState(payload); err != nil {
 		return err
 	}
-	heater.ListenState(heater.SetTopics.Temperature)
-	heater.ListenState(heater.SetTopics.SingleDuration)
+
+	updateHeater := func(currentState *ResourceState, data string, heaterTreatment func(heaterState *HeaterState, data string)) {
+		heaterState := currentState.HeaterState[id]
+		heaterTreatment(&heaterState, data)
+		currentState.HeaterState[id] = heaterState
+	}
+
+	heater.ListenState(heater.SetTopics.Temperature, func(currentState *ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+			dataFloat, err := strconv.ParseFloat(data, 64)
+			if err != nil {
+				heaterState.Temperature = nil
+			} else {
+				heaterState.Temperature = &dataFloat
+			}
+		})
+	})
+	heater.ListenState(heater.SetTopics.SingleDuration, func(currentState *ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+			heaterState.Duration = &data
+		})
+	})
 
 	heater.ListenStateWithPreHook(heater.SetTopics.PresetMode, func(data string) {
 		heater.recomputeState(data)
+	}, func(currentState *ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+			heaterState.Mode = &data
+		})
 	})
 
 	heater.ListenStateWithPreHook(heater.SetTopics.Mode, func(data string) {
@@ -40,9 +66,11 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 			heater.recomputeState(string(HeaterPresetModeNone))
 			heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeNone)
 		case HeaterModeAuto:
-			lastPreset := heater.GetState(heater.SetTopics.PresetMode)
+			lastPreset := heater.GetTopicState(heater.SetTopics.PresetMode)
 			if lastPreset == string(HeaterPresetModeManuel) || lastPreset == string(HeaterPresetModeNone) {
 				heater.PublishState(heater.GetTopics.PresetMode, HeaterPresetModeConfort)
+			} else {
+				fmt.Println("on était deja en mode auto sur le preset + " + lastPreset)
 			}
 		case HeaterModeHeat:
 			heater.recomputeState(string(HeaterPresetModeNone))
@@ -50,7 +78,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		default:
 			slog.Warn("Unknown mode received", "value", data)
 		}
-	})
+	}, func(currentState *ResourceState, data string) {})
 
 	return nil
 }
@@ -138,7 +166,7 @@ func (h *Heater) recomputeState(data string) {
 	case HeaterPresetModeNone:
 		// On cherche ici à distinguer 2 cas: soit on a manuellement retiré le preset, dans ce cas on bascule en mode manuel
 		// soit on a mis le mode en off, et dans ce cas on ne fait rien
-		lastMode := h.GetState(h.SetTopics.Mode)
+		lastMode := h.GetTopicState(h.SetTopics.Mode)
 		slog.Debug("Last mode read", "value", lastMode)
 		if lastMode == string(HeaterModeOff) {
 			targetAction = HeaterActionOff
