@@ -1,1 +1,1 @@
-(cd voltalis && DEBUG=1 URL=localhost:8123 SUPERVISOR_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyNjg1N2U0MWIwNjI0NDdkYWU1NzViMjk3MjA3ZmM4NSIsImlhdCI6MTc1NzY5MTA4MywiZXhwIjoyMDczMDUxMDgzfQ.eS7B8zYjwh-d4KDFV2u8oJDR8aRX6F75GPLGyedAzQY go run cmd/voltalis/main.go)
+(cd voltalis && DEBUG=1 go run cmd/voltalis/main.go)

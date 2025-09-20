@@ -57,3 +57,4 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+options.json
