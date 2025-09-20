@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-URL=supervisor/core /app/voltalis
+OPTION_FILE="/data/options.json" /app/voltalis

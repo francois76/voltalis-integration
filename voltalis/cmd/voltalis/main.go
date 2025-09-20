@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/francois76/voltalis-integration/voltalis/internal/config"
 	"github.com/francois76/voltalis-integration/voltalis/internal/logger"
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
 	"github.com/francois76/voltalis-integration/voltalis/internal/scheduler"
@@ -14,7 +15,11 @@ import (
 
 func main() {
 	logger.InitLogs()
-	client, err := mqtt.InitClient("tcp://localhost:1883", "voltalis-addon")
+	opts, err := config.LoadOptions()
+	if err != nil {
+		panic(err)
+	}
+	client, err := mqtt.InitClient("tcp://"+opts.MqttURL, "voltalis-addon")
 	if err != nil {
 		panic(err)
 	}
