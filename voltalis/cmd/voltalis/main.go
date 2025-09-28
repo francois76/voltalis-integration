@@ -32,9 +32,6 @@ func main() {
 		panic(err)
 	}
 
-	appl, _ := apiClient.GetAppliances()
-	fmt.Println(appl)
-
 	g, ctx := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
@@ -44,7 +41,7 @@ func main() {
 	})
 
 	g.Go(func() error {
-		return transform.Start(ctx, mqttClient)
+		return transform.Start(ctx, mqttClient, apiClient)
 	})
 
 	// Attendre que toutes les goroutines se terminent
