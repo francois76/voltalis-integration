@@ -12,7 +12,7 @@ arch:
 map:
     - config:rw
 options:
-    mqtt_url: localhost:1883
+    mqtt_url: "localhost:1883"
     mqtt_password: ""
     voltalis_login: ""
     voltalis_password: ""
