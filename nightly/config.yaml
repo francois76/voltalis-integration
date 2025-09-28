@@ -11,6 +11,14 @@ arch:
     - amd64
 map:
     - config:rw
-options: {}
-schema: {}
+options:
+    mqtt_url: localhost:1883
+    mqtt_password: ""
+    voltalis_login: ""
+    voltalis_password: ""
+schema:
+    mqtt_url: str
+    mqtt_password: str?
+    voltalis_login: str
+    voltalis_password: str
 image: "ghcr.io/francois76/voltalis"
