@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/francois76/voltalis-integration/voltalis/internal/api"
@@ -20,6 +21,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	slog.With("options", opts).Info("loading options")
 	mqttClient, err := mqtt.InitClient("tcp://"+opts.MqttURL, "voltalis-addon", opts.MqttPassword)
 	if err != nil {
 		panic(err)
