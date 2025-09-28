@@ -15,16 +15,20 @@ type Client struct {
 	SiteID     int
 }
 
-func NewClient(baseURL, login, password string, siteID int) (*Client, error) {
+func NewClient(baseURL, login, password string) (*Client, error) {
 	c := &Client{
 		BaseURL:    baseURL,
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
-		SiteID:     siteID,
 	}
 
 	if err := c.login(login, password); err != nil {
 		return nil, err
 	}
+	me, err := c.GetMe()
+	if err != nil {
+		return nil, err
+	}
+	c.SiteID = me.DefaultSite.ID
 	return c, nil
 }
 

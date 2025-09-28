@@ -1,1 +1,1 @@
-(cd voltalis && DEBUG=1 OPTION_FILE=options.json go run cmd/voltalis/main.go)
+(cd voltalis && DEBUG=1 OPTIONS_FILE="/workspaces/voltalis-integration/options.json" go run cmd/voltalis/main.go)

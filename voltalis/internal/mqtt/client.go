@@ -13,11 +13,13 @@ type Client struct {
 	StateManager  *StateManager       // machine à état de plus haut niveau ne renvoyant à l'exterieur que les données à renvoyer à voltalis
 }
 
-func InitClient(broker string, clientID string) (*Client, error) {
+func InitClient(broker string, clientID string, password string) (*Client, error) {
 	opts := mqtt.NewClientOptions().
 		AddBroker(broker).
 		SetClientID(clientID)
-
+	if password != "" {
+		opts.SetPassword(password)
+	}
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()

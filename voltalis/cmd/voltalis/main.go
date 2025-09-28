@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/francois76/voltalis-integration/voltalis/internal/api"
 	"github.com/francois76/voltalis-integration/voltalis/internal/config"
 	"github.com/francois76/voltalis-integration/voltalis/internal/logger"
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
@@ -19,21 +20,29 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	client, err := mqtt.InitClient("tcp://"+opts.MqttURL, "voltalis-addon")
+	mqttClient, err := mqtt.InitClient("tcp://"+opts.MqttURL, "voltalis-addon", opts.MqttPassword)
 	if err != nil {
 		panic(err)
 	}
+
+	apiClient, err := api.NewClient("https://api.myvoltalis.com", opts.VoltalisLogin, opts.VoltalisPassword)
+	if err != nil {
+		panic(err)
+	}
+
+	appl, _ := apiClient.GetAppliances()
+	fmt.Println(appl)
 
 	g, ctx := errgroup.WithContext(context.Background())
 
 	g.Go(func() error {
 		return scheduler.Run(15*time.Second, func() error {
-			return transform.SyncVoltalisHeatersToHA(client)
+			return transform.SyncVoltalisHeatersToHA(mqttClient)
 		})
 	})
 
 	g.Go(func() error {
-		return transform.Start(ctx, client)
+		return transform.Start(ctx, mqttClient)
 	})
 
 	// Attendre que toutes les goroutines se terminent
