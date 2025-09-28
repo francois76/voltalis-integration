@@ -18,7 +18,7 @@ func InitClient(broker string, clientID string, password string) (*Client, error
 		AddBroker(broker).
 		SetClientID(clientID)
 	if password != "" {
-		opts.SetPassword(password)
+		opts = opts.SetPassword(password)
 	}
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
