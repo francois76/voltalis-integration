@@ -24,28 +24,29 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 	}
 
 	for _, appliance := range appliances {
-		heaterState := state.HeaterState{}
-		states.HeaterState[int64(appliance.ID)] = heaterState
-		if appliance.Programming.IsOn {
+		heaterState := &state.HeaterState{}
+		if !appliance.Programming.IsOn {
 			heaterState.Mode = state.HeaterModeOff
 		} else if appliance.Programming.ProgType == "MANUAL" {
 			heaterState.Mode = state.HeaterModeManual
 			heaterState.Temperature = appliance.Programming.TemperatureTarget
 		} else if appliance.Programming.ProgType == "USER" {
-			mapPreset(appliance, &heaterState)
-			mapEndDate(appliance, &heaterState)
+			mapPreset(appliance, heaterState)
+			mapEndDate(appliance, heaterState)
 			states.ControllerState.Program = appliance.Programming.ProgName
 		} else if appliance.Programming.ProgType == "QUICK" {
-			mapPreset(appliance, &heaterState)
-			mapEndDate(appliance, &heaterState)
+			mapPreset(appliance, heaterState)
+			mapEndDate(appliance, heaterState)
 			quickSettingsMappings := map[string]state.HeaterPresetMode{
 				"quicksettings.shortleave": state.HeaterPresetModeEco,
 				"quicksettings.athome":     state.HeaterPresetModeConfort,
 				"quicksettings.longleave":  state.HeaterPresetModeHorsGel,
 			}
 			states.ControllerState.Mode = quickSettingsMappings[appliance.Programming.ProgName]
-
+		} else {
+			slog.Error("unknown prog type", "progType", appliance.Programming.ProgType)
 		}
+		states.HeaterState[int64(appliance.ID)] = *heaterState
 	}
 	slog.With("state", states).Debug("state after voltalis fetch")
 
