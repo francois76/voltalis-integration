@@ -68,17 +68,6 @@ func (hs HeaterState) Compare(other Comparable) map[string]interface{} {
 	return changes
 }
 
-// Fonction générique pour comparer des pointeurs
-func comparePointers[T comparable](a, b *T) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
-}
-
 // Fonction générique pour comparer des maps
 func compareMaps[K comparable, V Comparable](previous, current map[K]V) map[string]interface{} {
 	changes := make(map[string]interface{})

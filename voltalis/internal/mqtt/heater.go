@@ -74,7 +74,15 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		default:
 			slog.Warn("Unknown mode received", "value", data)
 		}
-	}, func(currentState *ResourceState, data string) {})
+	}, func(currentState *ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+			if data == "auto" {
+				heaterState.Mode = heater.GetTopicState(heater.SetTopics.PresetMode)
+			} else {
+				heaterState.Mode = data
+			}
+		})
+	})
 
 	return nil
 }
