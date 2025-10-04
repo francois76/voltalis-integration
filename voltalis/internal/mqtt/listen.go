@@ -5,15 +5,16 @@ import (
 	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
 type SetTopic string
 
-func (c *Client) ListenState(topic SetTopic, publishState func(currentState *ResourceState, data string)) {
+func (c *Client) ListenState(topic SetTopic, publishState func(currentState *state.ResourceState, data string)) {
 	c.ListenStateWithPreHook(topic, nil, publishState)
 }
 
-func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string), publishState func(currentState *ResourceState, data string)) {
+func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string), publishState func(currentState *state.ResourceState, data string)) {
 	if topic == "" {
 		panic("tentative d'écouter un topic vide, verifier que les composant ayant généré ce topic est bien instancié")
 	}

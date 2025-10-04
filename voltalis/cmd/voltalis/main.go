@@ -36,7 +36,7 @@ func main() {
 
 	g.Go(func() error {
 		return scheduler.Run(15*time.Second, func() error {
-			return transform.SyncVoltalisHeatersToHA(mqttClient)
+			return transform.SyncVoltalisHeatersToHA(mqttClient, apiClient)
 		})
 	})
 

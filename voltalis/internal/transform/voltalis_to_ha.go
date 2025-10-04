@@ -1,15 +1,74 @@
 package transform
 
 import (
+	"log/slog"
+
+	"github.com/francois76/voltalis-integration/voltalis/internal/api"
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
+	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
-func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client) error {
-	// client.PublishState(heaterGetTopics[12345678901234].CurrentTemperature, "19.5")
-	// client.PublishState(heaterGetTopics[12345678901234].Mode, "heat")
-	// client.PublishState(heaterGetTopics[12345678901234].Temperature, "21")
-	// client.PublishState(heaterGetTopics[23456789012345].CurrentTemperature, mqtt.TEMPERATURE_NONE)
-	// client.PublishState(heaterGetTopics[23456789012345].Mode, "auto")
-	// client.PublishState(heaterGetTopics[23456789012345].Temperature, mqtt.TEMPERATURE_NONE))
+func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) error {
+
+	// initialisation de l'état global
+	states := state.ResourceState{
+		HeaterState: make(map[int64]state.HeaterState),
+		ControllerState: state.ControllerState{
+			Mode:    state.HeaterPresetModeAucunMode,
+			Program: "Aucun programme",
+		},
+	}
+	appliances, err := apiClient.GetAppliances()
+	if err != nil {
+		return err
+	}
+
+	for _, appliance := range appliances {
+		heaterState := state.HeaterState{}
+		states.HeaterState[int64(appliance.ID)] = heaterState
+		if appliance.Programming.IsOn {
+			heaterState.Mode = state.HeaterModeOff
+		} else if appliance.Programming.ProgType == "MANUAL" {
+			heaterState.Mode = state.HeaterModeManual
+			heaterState.Temperature = appliance.Programming.TemperatureTarget
+		} else if appliance.Programming.ProgType == "USER" {
+			mapPreset(appliance, &heaterState)
+			mapEndDate(appliance, &heaterState)
+			states.ControllerState.Program = appliance.Programming.ProgName
+		} else if appliance.Programming.ProgType == "QUICK" {
+			mapPreset(appliance, &heaterState)
+			mapEndDate(appliance, &heaterState)
+			quickSettingsMappings := map[string]state.HeaterPresetMode{
+				"quicksettings.shortleave": state.HeaterPresetModeEco,
+				"quicksettings.athome":     state.HeaterPresetModeConfort,
+				"quicksettings.longleave":  state.HeaterPresetModeHorsGel,
+			}
+			states.ControllerState.Mode = quickSettingsMappings[appliance.Programming.ProgName]
+
+		}
+	}
+	slog.With("state", states).Debug("state after voltalis fetch")
+
 	return nil
+}
+
+func mapEndDate(appliance api.Appliance, heaterState *state.HeaterState) {
+	if appliance.Programming.EndDate != nil {
+		heaterState.Duration = *appliance.Programming.EndDate
+	} else {
+		heaterState.Duration = "jusqu'à ce que je change d'avis"
+	}
+}
+
+func mapPreset(appliance api.Appliance, heaterState *state.HeaterState) {
+	switch appliance.Programming.Mode {
+	case "CONFORT":
+		heaterState.Mode = state.HeaterModeConfort
+	case "ECO":
+		heaterState.Mode = state.HeaterModeEco
+	case "HORS_GEL":
+		heaterState.Mode = state.HeaterModeHorsGel
+	default:
+		heaterState.Mode = state.HeaterModeOff
+	}
 }

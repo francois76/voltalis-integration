@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+
+	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
 func (c *Client) RegisterHeater(id int64, name string) error {
@@ -12,7 +14,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		GetTopics: HeaterGetTopics{},
 		SetTopics: HeaterSetTopics{},
 	}
-	c.StateManager.currentState.HeaterState[id] = HeaterState{}
+	c.StateManager.currentState.HeaterState[id] = state.HeaterState{}
 	payload, err := heater.addClimate(id, name)
 	if err != nil {
 		return err
@@ -30,14 +32,14 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		return err
 	}
 
-	updateHeater := func(currentState *ResourceState, data string, heaterTreatment func(heaterState *HeaterState, data string)) {
+	updateHeater := func(currentState *state.ResourceState, data string, heaterTreatment func(heaterState *state.HeaterState, data string)) {
 		heaterState := currentState.HeaterState[id]
 		heaterTreatment(&heaterState, data)
 		currentState.HeaterState[id] = heaterState
 	}
 
-	heater.ListenState(heater.SetTopics.Temperature, func(currentState *ResourceState, data string) {
-		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+	heater.ListenState(heater.SetTopics.Temperature, func(currentState *state.ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
 			dataFloat, err := strconv.ParseFloat(data, 64)
 			if err != nil {
 				heaterState.Temperature = -1
@@ -46,17 +48,17 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 			}
 		})
 	})
-	heater.ListenState(heater.SetTopics.SingleDuration, func(currentState *ResourceState, data string) {
-		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+	heater.ListenState(heater.SetTopics.SingleDuration, func(currentState *state.ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
 			heaterState.Duration = data
 		})
 	})
 
 	heater.ListenStateWithPreHook(heater.SetTopics.PresetMode, func(data string) {
 		heater.recomputeState(data)
-	}, func(currentState *ResourceState, data string) {
-		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
-			heaterState.Mode = data
+	}, func(currentState *state.ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
+			heaterState.Mode = state.HeaterMode(data)
 		})
 	})
 
@@ -74,12 +76,12 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		default:
 			slog.Warn("Unknown mode received", "value", data)
 		}
-	}, func(currentState *ResourceState, data string) {
-		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+	}, func(currentState *state.ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
 			if data == "auto" {
-				heaterState.Mode = heater.GetTopicState(heater.SetTopics.PresetMode)
+				heaterState.Mode = state.HeaterMode(heater.GetTopicState(heater.SetTopics.PresetMode))
 			} else {
-				heaterState.Mode = data
+				heaterState.Mode = state.HeaterMode(data)
 			}
 		})
 	})

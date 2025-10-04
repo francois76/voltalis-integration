@@ -26,11 +26,42 @@ type Site struct {
 }
 
 type Appliance struct {
-	ID             int      `json:"id"`
-	Name           string   `json:"name"`
-	ApplianceType  string   `json:"applianceType"`
-	AvailableModes []string `json:"availableModes"`
-	HeatingLevel   int      `json:"heatingLevel"`
+	ID              int         `json:"id"`
+	Name            string      `json:"name"`
+	ApplianceType   string      `json:"applianceType"`
+	ModulatorType   string      `json:"modulatorType"`
+	AvailableModes  []string    `json:"availableModes"`
+	VoltalisVersion string      `json:"voltalisVersion"`
+	Programming     Programming `json:"programming"`
+	HeatingLevel    int         `json:"heatingLevel"`
+}
+
+// Structure pour le champ programming
+type Programming struct {
+	ProgType           string  `json:"progType"`
+	ProgName           string  `json:"progName"`
+	IDManualSetting    *int    `json:"idManualSetting"`
+	IsOn               bool    `json:"isOn"`
+	UntilFurtherNotice *bool   `json:"untilFurtherNotice"`
+	Mode               string  `json:"mode"`
+	IDPlanning         int     `json:"idPlanning"`
+	EndDate            *string `json:"endDate"`
+	TemperatureTarget  float64 `json:"temperatureTarget"`
+	DefaultTemperature float64 `json:"defaultTemperature"`
+}
+
+type ManualSetting struct {
+	ID                 int        `json:"id"`
+	Enabled            bool       `json:"enabled"`
+	IDAppliance        int        `json:"idAppliance"`
+	ApplianceName      string     `json:"applianceName"`
+	ApplianceType      string     `json:"applianceType"`
+	UntilFurtherNotice bool       `json:"untilFurtherNotice"`
+	IsOn               bool       `json:"isOn"`
+	Mode               string     `json:"mode"`
+	HeatingLevel       int        `json:"heatingLevel"`
+	EndDate            *time.Time `json:"endDate"`
+	TemperatureTarget  float64    `json:"temperatureTarget"`
 }
 
 type Consumption struct {

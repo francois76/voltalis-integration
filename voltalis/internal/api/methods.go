@@ -26,6 +26,12 @@ func (c *Client) GetConsumptionRealtime() (*Consumption, error) {
 	return &cons, err
 }
 
+func (c *Client) GetManualSettings() ([]ManualSetting, error) {
+	var settings []ManualSetting
+	err := c.get(fmt.Sprintf("/api/site/%d/manualsetting", c.SiteID), &settings)
+	return settings, err
+}
+
 func (c *Client) EnableQuickSetting(qsID int, enabled bool) error {
 	body := map[string]bool{"enabled": enabled}
 	return c.put(fmt.Sprintf("/api/site/%d/quicksettings/%d/enable", c.SiteID, qsID), body, nil)

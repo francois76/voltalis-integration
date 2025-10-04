@@ -2,6 +2,8 @@ package mqtt
 
 import (
 	"fmt"
+
+	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
 var CONTROLLER_DEVICE = DeviceInfo{
@@ -33,13 +35,13 @@ func (c *Client) RegisterController() error {
 	if err != nil {
 		return err
 	}
-	controller.ListenState(controller.SetTopics.Mode, func(currentState *ResourceState, data string) {
-		currentState.ControllerState.Mode = data
+	controller.ListenState(controller.SetTopics.Mode, func(currentState *state.ResourceState, data string) {
+		currentState.ControllerState.Mode = state.HeaterPresetMode(data)
 	})
-	controller.ListenState(controller.SetTopics.Duration, func(currentState *ResourceState, data string) {
+	controller.ListenState(controller.SetTopics.Duration, func(currentState *state.ResourceState, data string) {
 		currentState.ControllerState.Duration = data
 	})
-	controller.ListenState(controller.SetTopics.Program, func(currentState *ResourceState, data string) {
+	controller.ListenState(controller.SetTopics.Program, func(currentState *state.ResourceState, data string) {
 		currentState.ControllerState.Program = data
 	})
 	return nil

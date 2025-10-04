@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
 type Client struct {
@@ -25,9 +26,9 @@ func InitClient(broker string, clientID string, password string) (*Client, error
 		return nil, token.Error()
 	}
 	stateManager := NewStateManager()
-	stateManager.UpdateState(ResourceState{
-		ControllerState: ControllerState{},
-		HeaterState:     map[int64]HeaterState{},
+	stateManager.UpdateState(state.ResourceState{
+		ControllerState: state.ControllerState{},
+		HeaterState:     map[int64]state.HeaterState{},
 	})
 	return &Client{
 		Client:        client,
