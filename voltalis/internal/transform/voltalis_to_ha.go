@@ -49,6 +49,8 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 		states.HeaterState[int64(appliance.ID)] = *heaterState
 	}
 	slog.With("state", states).Debug("state after voltalis fetch")
+	// TODO: mettre en place un registre de queue MQTT
+	// mqttClient.PublishState(mqtt.NewTopicName[GetTopic](states.HeaterState))
 
 	return nil
 }

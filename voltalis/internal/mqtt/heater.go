@@ -123,23 +123,23 @@ func (h *Heater) addSelectMode(payload *HeaterConfigPayload) error {
 
 func (h *Heater) addClimate(id int64, name string) (*HeaterConfigPayload, error) {
 	payload := &HeaterConfigPayload{
-		ActionTopic:      newHeaterTopic[GetTopic](id, "action"),
+		ActionTopic:      NewHeaterTopic[GetTopic](id, "action"),
 		UniqueID:         fmt.Sprintf("voltalis_heater_%d", id),
 		Name:             "Temperature",
-		CommandTopic:     newHeaterTopic[GetTopic](id, "set"),
-		ModeStateTopic:   newHeaterTopic[GetTopic](id, "mode"),
-		ModeCommandTopic: newHeaterTopic[SetTopic](id, "mode"),
+		CommandTopic:     NewHeaterTopic[GetTopic](id, "set"),
+		ModeStateTopic:   NewHeaterTopic[GetTopic](id, "mode"),
+		ModeCommandTopic: NewHeaterTopic[SetTopic](id, "mode"),
 		PresetModes: []HeaterPresetMode{HeaterPresetModeHorsGel,
 			HeaterPresetModeEco, HeaterPresetModeConfort},
-		PresetModeCommandTopic:  newHeaterTopic[SetTopic](id, "preset_mode"),
-		PresetModeStateTopic:    newHeaterTopic[GetTopic](id, "preset_mode"),
-		TemperatureStateTopic:   newHeaterTopic[GetTopic](id, "temp"),
-		TemperatureCommandTopic: newHeaterTopic[SetTopic](id, "temp"),
+		PresetModeCommandTopic:  NewHeaterTopic[SetTopic](id, "preset_mode"),
+		PresetModeStateTopic:    NewHeaterTopic[GetTopic](id, "preset_mode"),
+		TemperatureStateTopic:   NewHeaterTopic[GetTopic](id, "temp"),
+		TemperatureCommandTopic: NewHeaterTopic[SetTopic](id, "temp"),
 		MinTemp:                 15,
 		MaxTemp:                 25,
 		TempStep:                0.5,
 		Modes:                   []HeaterMode{HeaterModeOff, HeaterModeAuto, HeaterModeHeat},
-		CurrentTemperatureTopic: newHeaterTopic[GetTopic](id, "current_temp"),
+		CurrentTemperatureTopic: NewHeaterTopic[GetTopic](id, "current_temp"),
 		Device: DeviceInfo{
 			Identifiers:  []string{"voltalis_heater_" + fmt.Sprint(id)},
 			Manufacturer: "Voltalis",
@@ -218,6 +218,6 @@ type Heater struct {
 	GetTopics HeaterGetTopics
 }
 
-func newHeaterTopic[T Topic](id int64, suffix string) T {
+func NewHeaterTopic[T Topic](id int64, suffix string) T {
 	return newTopicName[T](fmt.Sprintf("heater/%d/%s", id, suffix))
 }
