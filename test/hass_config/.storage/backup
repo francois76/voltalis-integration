@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "minor_version": 7,
+  "key": "backup",
+  "data": {
+    "backups": [],
+    "config": {
+      "agents": {
+        "backup.local": {
+          "protected": false,
+          "retention": null
+        }
+      },
+      "automatic_backups_configured": true,
+      "create_backup": {
+        "agent_ids": [
+          "backup.local"
+        ],
+        "include_addons": [],
+        "include_all_addons": false,
+        "include_database": true,
+        "include_folders": [],
+        "name": null,
+        "password": "ZAM3-VYUO-9S1U-2X3B-MAVG-0K8W-LMF4"
+      },
+      "last_attempted_automatic_backup": "2025-09-20T16:35:43.931464+02:00",
+      "last_completed_automatic_backup": null,
+      "retention": {
+        "copies": 3,
+        "days": null
+      },
+      "schedule": {
+        "days": [],
+        "recurrence": "never",
+        "time": null
+      }
+    }
+  }
+}

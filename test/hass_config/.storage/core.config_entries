@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "minor_version": 5,
+  "key": "core.config_entries",
+  "data": {
+    "entries": [
+      {"created_at":"2025-09-17T19:07:07.457288+00:00","data":{},"disabled_by":null,"discovery_keys":{},"domain":"go2rtc","entry_id":"01K5CH5JA1R25SS60Y5D5EC4W9","minor_version":1,"modified_at":"2025-09-17T19:07:07.457290+00:00","options":{},"pref_disable_new_entities":false,"pref_disable_polling":false,"source":"system","subentries":[],"title":"go2rtc","unique_id":null,"version":1},
+      {"created_at":"2025-09-17T19:07:07.461142+00:00","data":{},"disabled_by":"user","discovery_keys":{},"domain":"backup","entry_id":"01K5CH5JA5F1BCKY5VE5PCSWRS","minor_version":1,"modified_at":"2025-09-17T19:07:07.461144+00:00","options":{},"pref_disable_new_entities":false,"pref_disable_polling":false,"source":"system","subentries":[],"title":"Backup","unique_id":null,"version":1},
+      {"created_at":"2025-09-17T19:08:37.610212+00:00","data":{"broker":"mqtt","password":"toto","port":1883,"username":"toto"},"disabled_by":null,"discovery_keys":{},"domain":"mqtt","entry_id":"01K5CH8ABA9KSQHYJJBMMSJQWZ","minor_version":2,"modified_at":"2025-09-17T19:08:37.610216+00:00","options":{},"pref_disable_new_entities":false,"pref_disable_polling":false,"source":"user","subentries":[],"title":"mqtt","unique_id":null,"version":1},
+      {"created_at":"2025-09-20T15:04:20.141129+00:00","data":{},"disabled_by":null,"discovery_keys":{},"domain":"sun","entry_id":"01K5KTF5DD3W5CX71GTQNZKRV9","minor_version":1,"modified_at":"2025-09-20T15:04:20.141133+00:00","options":{},"pref_disable_new_entities":false,"pref_disable_polling":false,"source":"import","subentries":[],"title":"Sun","unique_id":null,"version":1}
+    ]
+  }
+}
