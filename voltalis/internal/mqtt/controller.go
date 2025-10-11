@@ -44,6 +44,7 @@ func (c *Client) RegisterController() error {
 	controller.ListenState(controller.SetTopics.Program, func(currentState *state.ResourceState, data string) {
 		currentState.ControllerState.Program = data
 	})
+	c.ControllerCommandTopic = controller.GetTopics
 	return nil
 }
 

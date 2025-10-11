@@ -1,6 +1,7 @@
 package transform
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/francois76/voltalis-integration/voltalis/internal/api"
@@ -49,9 +50,17 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 		states.HeaterState[int64(appliance.ID)] = *heaterState
 	}
 	slog.With("state", states).Debug("state after voltalis fetch")
-	// TODO: mettre en place un registre de queue MQTT
-	// mqttClient.PublishState(mqtt.NewTopicName[GetTopic](states.HeaterState))
 
+	mqttClient.PublishState(mqttClient.ControllerCommandTopic.Duration, states.ControllerState.Duration)
+	mqttClient.PublishState(mqttClient.ControllerCommandTopic.Mode, string(states.ControllerState.Mode))
+	mqttClient.PublishState(mqttClient.ControllerCommandTopic.Program, states.ControllerState.Program)
+
+	for id, heaterState := range states.HeaterState {
+		commands := mqttClient.BuildHeaterStates(id)
+		mqttClient.PublishState(commands.TemperatureStateTopic, fmt.Sprintf("%.1f", heaterState.Temperature))
+		mqttClient.PublishState(commands.ModeStateTopic, string(heaterState.Mode))
+		mqttClient.PublishState(commands.PresetModeStateTopic, string(heaterState.Mode))
+	}
 	return nil
 }
 

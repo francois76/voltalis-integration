@@ -11,21 +11,25 @@ type HeaterCommandPayload struct {
 	TemperatureCommandTopic SetTopic `json:"temperature_command_topic"`
 }
 
+type HeaterStatePayload struct {
+	CommandTopic            GetTopic `json:"command_topic"`
+	ModeStateTopic          GetTopic `json:"mode_state_topic"`
+	PresetModeStateTopic    GetTopic `json:"preset_mode_state_topic,omitempty"`
+	TemperatureStateTopic   GetTopic `json:"temperature_state_topic"`
+	CurrentTemperatureTopic GetTopic `json:"current_temperature_topic"`
+}
+
 type HeaterConfigPayload struct {
 	HeaterCommandPayload
+	HeaterStatePayload
 	ActionTopic              GetTopic           `json:"action_topic,omitempty"`
 	Name                     string             `json:"name"`
 	UniqueID                 string             `json:"unique_id"`
-	CommandTopic             GetTopic           `json:"command_topic"`
-	ModeStateTopic           GetTopic           `json:"mode_state_topic"`
 	PresetModes              []HeaterPresetMode `json:"preset_modes,omitempty"`
-	PresetModeStateTopic     GetTopic           `json:"preset_mode_state_topic,omitempty"`
-	TemperatureStateTopic    GetTopic           `json:"temperature_state_topic"`
 	MinTemp                  float64            `json:"min_temp"`
 	MaxTemp                  float64            `json:"max_temp"`
 	TempStep                 float64            `json:"temp_step"`
 	Modes                    []HeaterMode       `json:"modes"`
-	CurrentTemperatureTopic  GetTopic           `json:"current_temperature_topic"`
 	Device                   DeviceInfo         `json:"device"`
 	TemperatureStateTemplate string             `json:"temperature_state_template,omitempty"`
 }

@@ -9,9 +9,10 @@ import (
 
 type Client struct {
 	mqtt.Client
-	stateMutex    sync.Mutex
-	stateTopicMap map[SetTopic]string // possède la dernière valeur set par HA sur chaque topic
-	StateManager  *StateManager       // machine à état de plus haut niveau ne renvoyant à l'exterieur que les données à renvoyer à voltalis
+	stateMutex             sync.Mutex
+	stateTopicMap          map[SetTopic]string // possède la dernière valeur set par HA sur chaque topic
+	ControllerCommandTopic ControllerGetTopics
+	StateManager           *StateManager // machine à état de plus haut niveau ne renvoyant à l'exterieur que les données à renvoyer à voltalis
 }
 
 func InitClient(broker string, clientID string, password string) (*Client, error) {
@@ -48,5 +49,15 @@ func (c *Client) BuildHeaterCommands(id int64) HeaterCommandPayload {
 		ModeCommandTopic:        NewHeaterTopic[SetTopic](id, "mode"),
 		PresetModeCommandTopic:  NewHeaterTopic[SetTopic](id, "preset_mode"),
 		TemperatureCommandTopic: NewHeaterTopic[SetTopic](id, "temp"),
+	}
+}
+
+func (c *Client) BuildHeaterStates(id int64) HeaterStatePayload {
+	return HeaterStatePayload{
+		ModeStateTopic:          NewHeaterTopic[GetTopic](id, "mode"),
+		PresetModeStateTopic:    NewHeaterTopic[GetTopic](id, "preset_mode"),
+		TemperatureStateTopic:   NewHeaterTopic[GetTopic](id, "temp"),
+		CommandTopic:            NewHeaterTopic[GetTopic](id, "set"),
+		CurrentTemperatureTopic: NewHeaterTopic[GetTopic](id, "current_temp"),
 	}
 }
