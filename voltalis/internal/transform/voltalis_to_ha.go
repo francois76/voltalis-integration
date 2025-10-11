@@ -57,8 +57,9 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 
 	for id, heaterState := range states.HeaterState {
 		commands := mqttClient.BuildHeaterStates(id)
-		mqttClient.PublishState(commands.TemperatureStateTopic, fmt.Sprintf("%.1f", heaterState.Temperature))
-		mqttClient.PublishState(commands.ModeStateTopic, string(heaterState.Mode))
+		if heaterState.Temperature != 0 {
+			mqttClient.PublishState(commands.TemperatureStateTopic, fmt.Sprintf("%.1f", heaterState.Temperature))
+		}
 		mqttClient.PublishState(commands.PresetModeStateTopic, string(heaterState.Mode))
 	}
 	return nil
