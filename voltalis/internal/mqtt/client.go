@@ -42,3 +42,11 @@ func (c *Client) GetTopicState(topic SetTopic) string {
 	defer c.stateMutex.Unlock()
 	return c.stateTopicMap[topic]
 }
+
+func (c *Client) BuildHeaterCommands(id int64) HeaterCommandPayload {
+	return HeaterCommandPayload{
+		ModeCommandTopic:        NewHeaterTopic[SetTopic](id, "mode"),
+		PresetModeCommandTopic:  NewHeaterTopic[SetTopic](id, "preset_mode"),
+		TemperatureCommandTopic: NewHeaterTopic[SetTopic](id, "temp"),
+	}
+}

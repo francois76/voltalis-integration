@@ -53,3 +53,15 @@ func getPayloadDureeMode(device DeviceInfo) *SensorConfigPayload {
 		Device:     device,
 	}
 }
+
+func getPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
+	identifier := CONTROLLER_DEVICE.Identifiers[0] + "_program"
+	return &SelectConfigPayload[string]{
+		UniqueID:     identifier,
+		Name:         "Sélectionner le programme",
+		CommandTopic: newTopicName[SetTopic](identifier),
+		StateTopic:   newTopicName[GetTopic](identifier),
+		Options:      append([]string{"Aucun programme"}, options...),
+		Device:       CONTROLLER_DEVICE,
+	}
+}
