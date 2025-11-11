@@ -14,20 +14,19 @@ type ControllerState struct {
 
 type HeaterState struct {
 	Duration    string
+	PresetMode  HeaterPresetMode
 	Mode        HeaterMode
 	Temperature float64
 }
 
-// HeaterMode correspond aux modes possibles fondamentalement pour un radiateur, il s'agit d'une simplification qui donne lieu à des traductions en terme de modélisation
-// à la fois coté mqtt et coté voltalis
+// Modes pour les radiateurs Voltalis
 type HeaterMode string
 
 const (
-	HeaterModeOff     HeaterMode = "off"
-	HeaterModeManual  HeaterMode = "heat" // correspond au mode manuel, mais nommé tel quel pour faciliter le cast côté voltalis
-	HeaterModeConfort HeaterMode = "Confort"
-	HeaterModeEco     HeaterMode = "Eco"
-	HeaterModeHorsGel HeaterMode = "Hors-Gel"
+	HeaterModeOff  HeaterMode = "off"
+	HeaterModeAuto HeaterMode = "auto"
+	HeaterModeHeat HeaterMode = "heat"
+	HeaterModeNone HeaterMode = "none"
 )
 
 type HeaterPresetMode string
@@ -69,8 +68,8 @@ func (hs HeaterState) Compare(other Comparable) map[string]interface{} {
 	if hs.Duration != otherHS.Duration {
 		changes["Duration"] = otherHS.Duration
 	}
-	if hs.Mode != otherHS.Mode {
-		changes["Mode"] = otherHS.Mode
+	if hs.PresetMode != otherHS.PresetMode {
+		changes["Mode"] = otherHS.PresetMode
 	}
 	if hs.Temperature != otherHS.Temperature {
 		changes["Temperature"] = otherHS.Temperature

@@ -27,9 +27,9 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 	for _, appliance := range appliances {
 		heaterState := &state.HeaterState{}
 		if !appliance.Programming.IsOn {
-			heaterState.Mode = state.HeaterModeOff
+			heaterState.PresetMode = state.HeaterPresetModeAucunMode
 		} else if appliance.Programming.ProgType == "MANUAL" {
-			heaterState.Mode = state.HeaterModeManual
+			heaterState.Mode = state.HeaterModeHeat
 			heaterState.Temperature = appliance.Programming.TemperatureTarget
 		} else if appliance.Programming.ProgType == "USER" {
 			mapPreset(appliance, heaterState)
@@ -57,11 +57,15 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 	mqttClient.PublishCommand(controllerCommands.Program, states.ControllerState.Program)
 	for id, heaterState := range states.HeaterState {
 		heaterCommands := mqttClient.BuildHeaterCommandTopic(id)
-		if heaterState.Temperature != 0 {
-			mqttClient.PublishCommand(heaterCommands.Temperature, fmt.Sprintf("%.1f", heaterState.Temperature))
-		}
 		mqttClient.PublishCommand(heaterCommands.SingleDuration, heaterState.Duration)
-		mqttClient.PublishCommand(heaterCommands.PresetMode, string(heaterState.Mode))
+		if heaterState.Mode != "" {
+			mqttClient.PublishCommand(heaterCommands.Mode, string(heaterState.Mode))
+		} else {
+			mqttClient.PublishCommand(heaterCommands.PresetMode, string(heaterState.PresetMode))
+		}
+		if heaterState.Temperature != 0 {
+			mqttClient.PublishCommand(heaterCommands.Temperature, heaterState.Temperature)
+		}
 	}
 	return nil
 }
@@ -78,12 +82,15 @@ func mapEndDate(appliance api.Appliance, heaterState *state.HeaterState) {
 func mapPreset(appliance api.Appliance, heaterState *state.HeaterState) {
 	switch appliance.Programming.Mode {
 	case "CONFORT":
-		heaterState.Mode = state.HeaterModeConfort
+		heaterState.PresetMode = state.HeaterPresetModeConfort
 	case "ECO":
-		heaterState.Mode = state.HeaterModeEco
+		heaterState.PresetMode = state.HeaterPresetModeEco
 	case "HORS_GEL":
-		heaterState.Mode = state.HeaterModeHorsGel
+		heaterState.PresetMode = state.HeaterPresetModeHorsGel
+	case "TEMPERATURE":
+		heaterState.Temperature = appliance.Programming.TemperatureTarget
+		heaterState.Mode = state.HeaterModeAuto
 	default:
-		heaterState.Mode = state.HeaterModeOff
+		heaterState.PresetMode = state.HeaterPresetModeAucunMode
 	}
 }
