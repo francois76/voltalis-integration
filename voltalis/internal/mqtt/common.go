@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"fmt"
-	"log/slog"
 	"maps"
 	"slices"
 )
@@ -16,11 +15,10 @@ func newTopicName[T Topic](base string) T {
 		mode = "get"
 	}
 	result := T(fmt.Sprintf("voltalis/%s/%s", base, mode))
-	slog.With("result", result).Debug("instanciating ")
 	return result
 }
 
-func getPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectConfigPayload[T] {
+func GetPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectConfigPayload[T] {
 	identifier := device.Identifiers[0] + "_mode"
 	return &SelectConfigPayload[T]{
 		UniqueID:     identifier,
@@ -32,7 +30,7 @@ func getPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectCon
 	}
 }
 
-func getPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
+func GetPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
 	identifier := device.Identifiers[0] + "_duration"
 	return &SelectConfigPayload[string]{
 		UniqueID:     identifier,
@@ -44,17 +42,17 @@ func getPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
 	}
 }
 
-func getPayloadDureeMode(device DeviceInfo) *SensorConfigPayload {
+func GetPayloadDureeMode(device DeviceInfo, topic GetTopic) *SensorConfigPayload {
 	identifier := device.Identifiers[0] + "_state"
 	return &SensorConfigPayload{
 		UniqueID:   identifier,
 		Name:       "Durée mode",
-		StateTopic: newTopicName[GetTopic](identifier),
+		StateTopic: topic,
 		Device:     device,
 	}
 }
 
-func getPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
+func GetPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
 	identifier := CONTROLLER_DEVICE.Identifiers[0] + "_program"
 	return &SelectConfigPayload[string]{
 		UniqueID:     identifier,

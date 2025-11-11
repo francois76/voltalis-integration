@@ -28,7 +28,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		return err
 	}
 
-	if err := heater.addDurationState(payload); err != nil {
+	if err := heater.addDurationState(payload, heater.GetTopics.SingleDuration); err != nil {
 		return err
 	}
 
@@ -57,6 +57,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 	heater.ListenStateWithPreHook(heater.SetTopics.PresetMode, func(data string) {
 		heater.recomputeState(data)
 	}, func(currentState *state.ResourceState, data string) {
+		fmt.Println("test")
 		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
 			heaterState.Mode = state.HeaterMode(data)
 		})
@@ -89,18 +90,17 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 	return nil
 }
 
-func (h *Heater) addDurationState(payload *HeaterConfigPayload) error {
-	statePayload := getPayloadDureeMode(payload.Device)
+func (h *Heater) addDurationState(payload *HeaterConfigPayload, topic GetTopic) error {
+	statePayload := GetPayloadDureeMode(payload.Device, topic)
 	if err := h.PublishConfig(statePayload); err != nil {
 		return fmt.Errorf("failed to publish heater state config: %w", err)
 	}
-	h.GetTopics.State = statePayload.StateTopic
 	h.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
 	return nil
 }
 
 func (h *Heater) addSelectDuration(payload *HeaterConfigPayload) error {
-	durationPayload := getPayloadSelectDuration(payload.Device)
+	durationPayload := GetPayloadSelectDuration(payload.Device)
 	if err := h.PublishConfig(durationPayload); err != nil {
 		return fmt.Errorf("failed to publish heater duration config: %w", err)
 	}
@@ -110,7 +110,7 @@ func (h *Heater) addSelectDuration(payload *HeaterConfigPayload) error {
 }
 
 func (h *Heater) addSelectMode(payload *HeaterConfigPayload) error {
-	selectPresetPayload := getPayloadSelectMode(payload.Device, PRESET_SELECT_ONE_HEATER...)
+	selectPresetPayload := GetPayloadSelectMode(payload.Device, PRESET_SELECT_ONE_HEATER...)
 	// le select de preset est juste un remapping sur le climate. Donc on ne déclare pas de topic dédiés
 	// (on écrase ceux qui sont créés par la méthode au dessus)
 	selectPresetPayload.CommandTopic = payload.PresetModeCommandTopic
@@ -134,13 +134,7 @@ func (h *Heater) addClimate(id int64, name string) (*HeaterConfigPayload, error)
 		MaxTemp:  25,
 		TempStep: 0.5,
 		Modes:    []HeaterMode{HeaterModeOff, HeaterModeAuto, HeaterModeHeat},
-		Device: DeviceInfo{
-			Identifiers:  []string{"voltalis_heater_" + fmt.Sprint(id)},
-			Manufacturer: "Voltalis",
-			Name:         "Radiateur " + name,
-			Model:        "Radiateur voltalis",
-			SwVersion:    "0.1.0",
-		},
+		Device:   BuildDeviceInfo(id, name),
 	}
 	if err := h.PublishConfig(payload); err != nil {
 		return nil, fmt.Errorf("failed to publish heater config: %w", err)
@@ -154,6 +148,16 @@ func (h *Heater) addClimate(id int64, name string) (*HeaterConfigPayload, error)
 	h.GetTopics.PresetMode = payload.PresetModeStateTopic
 	h.GetTopics.CurrentTemperature = payload.CurrentTemperatureTopic
 	return payload, nil
+}
+
+func BuildDeviceInfo(id int64, name string) DeviceInfo {
+	return DeviceInfo{
+		Identifiers:  []string{"voltalis_heater_" + fmt.Sprint(id)},
+		Manufacturer: "Voltalis",
+		Name:         "Radiateur " + name,
+		Model:        "Radiateur voltalis",
+		SwVersion:    "0.1.0",
+	}
 }
 
 func (h *Heater) recomputeState(data string) {
@@ -203,7 +207,6 @@ type HeaterGetTopics struct {
 	Temperature        GetTopic
 	CurrentTemperature GetTopic
 	SingleDuration     GetTopic
-	State              GetTopic
 }
 
 type Heater struct {

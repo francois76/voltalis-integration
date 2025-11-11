@@ -31,7 +31,7 @@ func (c *Client) RegisterController() error {
 	if err := controller.addSelectProgram(); err != nil {
 		return err
 	}
-	err := controller.addDurationState()
+	err := controller.addDurationState(controller.GetTopics.Duration)
 	if err != nil {
 		return err
 	}
@@ -44,12 +44,12 @@ func (c *Client) RegisterController() error {
 	controller.ListenState(controller.SetTopics.Program, func(currentState *state.ResourceState, data string) {
 		currentState.ControllerState.Program = data
 	})
-	c.ControllerCommandTopic = controller.GetTopics
+	c.ControllerCommandTopic = controller.SetTopics
 	return nil
 }
 
-func (controller *Controller) addDurationState() error {
-	statePayload := getPayloadDureeMode(CONTROLLER_DEVICE)
+func (controller *Controller) addDurationState(topic GetTopic) error {
+	statePayload := GetPayloadDureeMode(CONTROLLER_DEVICE, topic)
 	if err := controller.PublishConfig(statePayload); err != nil {
 		return fmt.Errorf("failed to publish controller state config: %w", err)
 	}
@@ -59,7 +59,7 @@ func (controller *Controller) addDurationState() error {
 }
 
 func (controller *Controller) addSelectProgram() error {
-	programPayload := getPayloadSelectProgram()
+	programPayload := GetPayloadSelectProgram()
 	if err := controller.PublishConfig(programPayload); err != nil {
 		return fmt.Errorf("failed to publish controller program config: %w", err)
 	}
@@ -69,7 +69,7 @@ func (controller *Controller) addSelectProgram() error {
 }
 
 func (c *Controller) addSelectDuration() error {
-	durationPayload := getPayloadSelectDuration(CONTROLLER_DEVICE)
+	durationPayload := GetPayloadSelectDuration(CONTROLLER_DEVICE)
 	if err := c.PublishConfig(durationPayload); err != nil {
 		return fmt.Errorf("failed to publish controller duration config: %w", err)
 	}
@@ -79,7 +79,7 @@ func (c *Controller) addSelectDuration() error {
 }
 
 func (c *Controller) addSelectMode() error {
-	modePayload := getPayloadSelectMode(CONTROLLER_DEVICE, PRESET_SELECT_CONTROLLER...)
+	modePayload := GetPayloadSelectMode(CONTROLLER_DEVICE, PRESET_SELECT_CONTROLLER...)
 	if err := c.PublishConfig(modePayload); err != nil {
 		return fmt.Errorf("failed to publish controller mode config: %w", err)
 	}

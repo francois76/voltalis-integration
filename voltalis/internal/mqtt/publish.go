@@ -11,22 +11,31 @@ type GetTopic string
 
 // PublishConfig publie une configuration Home Assistant (retained=true)
 func (c *Client) PublishConfig(payload payload) error {
-	return c.publish(GetTopic(fmt.Sprintf("homeassistant/%s/%s/config", payload.getComponent(), payload.getIdentifier())), true, payload)
+	return c.publish(fmt.Sprintf("homeassistant/%s/%s/config", payload.getComponent(), payload.getIdentifier()), true, payload)
 }
 
 // PublishState publie une mise à jour d'état (retained=false)
 // Si une mise a jour d'état tombe en erreur, on ne fait pas tomber le processus complet
 func (c *Client) PublishState(topic GetTopic, payload any) {
-	err := c.publish(topic, false, payload)
+	err := c.publish(string(topic), false, payload)
 	if err != nil {
 		slog.Error("Failed to publish state", "topic", topic, "error", err)
+	}
+}
+
+// PublishState publie une mise à jour de valeur
+// Si une mise a jour d'état tombe en erreur, on ne fait pas tomber le processus complet
+func (c *Client) PublishCommand(topic SetTopic, payload any) {
+	err := c.publish(string(topic), false, payload)
+	if err != nil {
+		slog.Error("Failed to publish command", "topic", topic, "error", err)
 	}
 }
 
 // publish publie sur MQTT :
 // - Si T est une struct/pointeur de struct, on fait un json.Marshal
 // - Si T est un type primitif (string, []byte, int, float, bool), on l'envoie directement
-func (c *Client) publish(topic GetTopic, retained bool, payload any) error {
+func (c *Client) publish(topic string, retained bool, payload any) error {
 	var data []byte
 	var err error
 
@@ -65,7 +74,6 @@ func (c *Client) publish(topic GetTopic, retained bool, payload any) error {
 		}
 	}
 
-	slog.Debug("MQTT publish", "topic", topic, "payload", data)
 	token := c.Client.Publish(string(topic), 0, retained, data)
 	token.Wait()
 	return token.Error()

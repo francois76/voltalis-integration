@@ -11,7 +11,7 @@ type Client struct {
 	mqtt.Client
 	stateMutex             sync.Mutex
 	stateTopicMap          map[SetTopic]string // possède la dernière valeur set par HA sur chaque topic
-	ControllerCommandTopic ControllerGetTopics
+	ControllerCommandTopic ControllerSetTopics
 	StateManager           *StateManager // machine à état de plus haut niveau ne renvoyant à l'exterieur que les données à renvoyer à voltalis
 }
 
