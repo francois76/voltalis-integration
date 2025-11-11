@@ -18,7 +18,7 @@ func newTopicName[T Topic](base string) T {
 	return result
 }
 
-func GetPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectConfigPayload[T] {
+func getPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectConfigPayload[T] {
 	identifier := device.Identifiers[0] + "_mode"
 	return &SelectConfigPayload[T]{
 		UniqueID:     identifier,
@@ -30,7 +30,7 @@ func GetPayloadSelectMode[T ~string](device DeviceInfo, options ...T) *SelectCon
 	}
 }
 
-func GetPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
+func getPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
 	identifier := device.Identifiers[0] + "_duration"
 	return &SelectConfigPayload[string]{
 		UniqueID:     identifier,
@@ -42,7 +42,7 @@ func GetPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
 	}
 }
 
-func GetPayloadDureeMode(device DeviceInfo, topic GetTopic) *SensorConfigPayload {
+func getPayloadDureeMode(device DeviceInfo, topic GetTopic) *SensorConfigPayload {
 	identifier := device.Identifiers[0] + "_state"
 	return &SensorConfigPayload{
 		UniqueID:   identifier,
@@ -52,7 +52,7 @@ func GetPayloadDureeMode(device DeviceInfo, topic GetTopic) *SensorConfigPayload
 	}
 }
 
-func GetPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
+func getPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
 	identifier := CONTROLLER_DEVICE.Identifiers[0] + "_program"
 	return &SelectConfigPayload[string]{
 		UniqueID:     identifier,

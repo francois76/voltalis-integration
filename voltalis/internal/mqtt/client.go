@@ -9,10 +9,9 @@ import (
 
 type Client struct {
 	mqtt.Client
-	stateMutex             sync.Mutex
-	stateTopicMap          map[SetTopic]string // possède la dernière valeur set par HA sur chaque topic
-	ControllerCommandTopic ControllerSetTopics
-	StateManager           *StateManager // machine à état de plus haut niveau ne renvoyant à l'exterieur que les données à renvoyer à voltalis
+	stateMutex    sync.Mutex
+	stateTopicMap map[SetTopic]string // possède la dernière valeur set par HA sur chaque topic
+	StateManager  *StateManager       // machine à état de plus haut niveau ne renvoyant à l'exterieur que les données à renvoyer à voltalis
 }
 
 func InitClient(broker string, clientID string, password string) (*Client, error) {
@@ -44,20 +43,39 @@ func (c *Client) GetTopicState(topic SetTopic) string {
 	return c.stateTopicMap[topic]
 }
 
-func (c *Client) BuildHeaterCommands(id int64) HeaterCommandPayload {
-	return HeaterCommandPayload{
+func (c *Client) buildClimateCommands(id int64) ClimateCommandPayload {
+	return ClimateCommandPayload{
 		ModeCommandTopic:        NewHeaterTopic[SetTopic](id, "mode"),
 		PresetModeCommandTopic:  NewHeaterTopic[SetTopic](id, "preset_mode"),
 		TemperatureCommandTopic: NewHeaterTopic[SetTopic](id, "temp"),
 	}
 }
 
-func (c *Client) BuildHeaterStates(id int64) HeaterStatePayload {
-	return HeaterStatePayload{
+func (c *Client) buildClimateStates(id int64) ClimateStatePayload {
+	return ClimateStatePayload{
 		ModeStateTopic:          NewHeaterTopic[GetTopic](id, "mode"),
 		PresetModeStateTopic:    NewHeaterTopic[GetTopic](id, "preset_mode"),
 		TemperatureStateTopic:   NewHeaterTopic[GetTopic](id, "temp"),
 		CommandTopic:            NewHeaterTopic[GetTopic](id, "set"),
 		CurrentTemperatureTopic: NewHeaterTopic[GetTopic](id, "current_temp"),
+	}
+}
+
+func (c *Client) BuildControllerCommandTopic() ControllerSetTopics {
+	return ControllerSetTopics{
+		Mode:     getPayloadSelectMode(CONTROLLER_DEVICE, PRESET_SELECT_CONTROLLER...).CommandTopic,
+		Duration: getPayloadSelectDuration(CONTROLLER_DEVICE).CommandTopic,
+		Program:  getPayloadSelectProgram().CommandTopic,
+	}
+}
+
+func (c *Client) BuildHeaterCommandTopic(id int64) HeaterSetTopics {
+	climate := c.buildClimateCommands(id)
+	durationPayload := getPayloadSelectDuration(buildDeviceInfo(id, ""))
+	return HeaterSetTopics{
+		Mode:           climate.ModeCommandTopic,
+		PresetMode:     climate.PresetModeCommandTopic,
+		Temperature:    climate.TemperatureCommandTopic,
+		SingleDuration: durationPayload.CommandTopic,
 	}
 }

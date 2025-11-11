@@ -5,13 +5,13 @@ type payload interface {
 	getComponent() component
 }
 
-type HeaterCommandPayload struct {
+type ClimateCommandPayload struct {
 	ModeCommandTopic        SetTopic `json:"mode_command_topic"`
 	PresetModeCommandTopic  SetTopic `json:"preset_mode_command_topic,omitempty"`
 	TemperatureCommandTopic SetTopic `json:"temperature_command_topic"`
 }
 
-type HeaterStatePayload struct {
+type ClimateStatePayload struct {
 	CommandTopic            GetTopic `json:"command_topic"`
 	ModeStateTopic          GetTopic `json:"mode_state_topic"`
 	PresetModeStateTopic    GetTopic `json:"preset_mode_state_topic,omitempty"`
@@ -19,9 +19,9 @@ type HeaterStatePayload struct {
 	CurrentTemperatureTopic GetTopic `json:"current_temperature_topic"`
 }
 
-type HeaterConfigPayload struct {
-	HeaterCommandPayload
-	HeaterStatePayload
+type ClimateConfigPayload struct {
+	ClimateCommandPayload
+	ClimateStatePayload
 	ActionTopic              GetTopic           `json:"action_topic,omitempty"`
 	Name                     string             `json:"name"`
 	UniqueID                 string             `json:"unique_id"`
@@ -34,11 +34,11 @@ type HeaterConfigPayload struct {
 	TemperatureStateTemplate string             `json:"temperature_state_template,omitempty"`
 }
 
-func (p *HeaterConfigPayload) getIdentifier() string {
+func (p *ClimateConfigPayload) getIdentifier() string {
 	return p.UniqueID
 }
 
-func (p *HeaterConfigPayload) getComponent() component {
+func (p *ClimateConfigPayload) getComponent() component {
 	return ComponentClimate
 }
 

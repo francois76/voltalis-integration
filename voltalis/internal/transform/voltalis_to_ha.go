@@ -50,20 +50,18 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 		states.HeaterState[int64(appliance.ID)] = *heaterState
 	}
 	slog.With("state", states).Debug("state after voltalis fetch")
+	controllerCommands := mqttClient.BuildControllerCommandTopic()
 
-	mqttClient.PublishCommand(mqttClient.ControllerCommandTopic.Duration, states.ControllerState.Duration)
-	mqttClient.PublishCommand(mqttClient.ControllerCommandTopic.Mode, string(states.ControllerState.Mode))
-	mqttClient.PublishCommand(mqttClient.ControllerCommandTopic.Program, states.ControllerState.Program)
-
+	mqttClient.PublishCommand(controllerCommands.Duration, states.ControllerState.Duration)
+	mqttClient.PublishCommand(controllerCommands.Mode, string(states.ControllerState.Mode))
+	mqttClient.PublishCommand(controllerCommands.Program, states.ControllerState.Program)
 	for id, heaterState := range states.HeaterState {
-		device := mqtt.BuildDeviceInfo(id, "")
-
-		commands := mqttClient.BuildHeaterCommands(id)
+		heaterCommands := mqttClient.BuildHeaterCommandTopic(id)
 		if heaterState.Temperature != 0 {
-			mqttClient.PublishCommand(commands.TemperatureCommandTopic, fmt.Sprintf("%.1f", heaterState.Temperature))
+			mqttClient.PublishCommand(heaterCommands.Temperature, fmt.Sprintf("%.1f", heaterState.Temperature))
 		}
-		mqttClient.PublishCommand(mqtt.GetPayloadSelectDuration(device).CommandTopic, heaterState.Duration)
-		mqttClient.PublishCommand(commands.PresetModeCommandTopic, string(heaterState.Mode))
+		mqttClient.PublishCommand(heaterCommands.SingleDuration, heaterState.Duration)
+		mqttClient.PublishCommand(heaterCommands.PresetMode, string(heaterState.Mode))
 	}
 	return nil
 }
