@@ -72,3 +72,9 @@ type Consumption struct {
 		TotalConsumptionInCurr float64   `json:"totalConsumptionInCurrency"`
 	} `json:"consumptions"`
 }
+
+type Program struct {
+	ID      int    `json:"id"`
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}

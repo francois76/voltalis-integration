@@ -36,3 +36,9 @@ func (c *Client) EnableQuickSetting(qsID int, enabled bool) error {
 	body := map[string]bool{"enabled": enabled}
 	return c.put(fmt.Sprintf("/api/site/%d/quicksettings/%d/enable", c.SiteID, qsID), body, nil)
 }
+
+func (c *Client) GetPrograms() ([]Program, error) {
+	var programs []Program
+	err := c.get(fmt.Sprintf("/api/site/%d/programming/program", c.SiteID), &programs)
+	return programs, err
+}

@@ -74,6 +74,21 @@ func (p *SensorConfigPayload) getComponent() component {
 	return ComponentSensor
 }
 
+type ButtonConfigPayload struct {
+	Name         string     `json:"name"`
+	UniqueID     string     `json:"unique_id"`
+	CommandTopic SetTopic   `json:"command_topic"`
+	Device       DeviceInfo `json:"device"`
+}
+
+func (b *ButtonConfigPayload) getIdentifier() string {
+	return b.UniqueID
+}
+
+func (b *ButtonConfigPayload) getComponent() component {
+	return ComponentButton
+}
+
 // DeviceInfo représente les informations du périphérique pour Home Assistant
 type DeviceInfo struct {
 	Identifiers  []string `json:"identifiers"`

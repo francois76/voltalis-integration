@@ -10,9 +10,15 @@ import (
 
 // Start est le point de démarrage de la fonction qui process les évenements MQTT de façon globalisée et appelle les APIs de voltalis pour répliquer les changements
 func Start(ctx context.Context, mqttClient *mqtt.Client, apiClient *api.Client) error {
-	if err := mqttClient.RegisterController(); err != nil {
+	controller, err := mqttClient.RegisterController()
+	if err != nil {
 		return err
 	}
+	programs, err := syncPrograms(apiClient)
+	if err != nil {
+		return err
+	}
+	controller.AddSelectProgram(programs...)
 	appliances, err := apiClient.GetAppliances()
 	if err != nil {
 		return err

@@ -63,6 +63,7 @@ const (
 	ComponentClimate component = "climate"
 	ComponentSelect  component = "select"
 	ComponentSensor  component = "sensor"
+	ComponentButton  component = "button"
 )
 
 var DURATION_NAMES_TO_VALUES = map[string]time.Duration{}

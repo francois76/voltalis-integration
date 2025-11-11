@@ -52,6 +52,16 @@ func getPayloadDureeMode(device DeviceInfo, topic GetTopic) *SensorConfigPayload
 	}
 }
 
+func getPayloadRefreshButton(device DeviceInfo) *ButtonConfigPayload {
+	identifier := device.Identifiers[0] + "_refresh"
+	return &ButtonConfigPayload{
+		UniqueID:     identifier,
+		Name:         "Recharger la configuration",
+		CommandTopic: newTopicName[SetTopic](identifier),
+		Device:       device,
+	}
+}
+
 func getPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
 	identifier := CONTROLLER_DEVICE.Identifiers[0] + "_program"
 	return &SelectConfigPayload[string]{

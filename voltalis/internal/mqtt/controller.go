@@ -14,26 +14,29 @@ var CONTROLLER_DEVICE = DeviceInfo{
 	SwVersion:    "0.1.0",
 }
 
-func (c *Client) RegisterController() error {
-	controller := Controller{
+func (c *Client) RegisterController() (*Controller, error) {
+	controller := &Controller{
 		Client:    c,
 		GetTopics: ControllerGetTopics{},
 		SetTopics: ControllerSetTopics{},
 	}
 
 	if err := controller.addSelectMode(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := controller.addSelectDuration(); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := controller.addSelectProgram(); err != nil {
-		return err
+	if err := controller.AddSelectProgram(); err != nil {
+		return nil, err
+	}
+	if err := controller.addRefreshController(); err != nil {
+		return nil, err
 	}
 	err := controller.addDurationState(controller.GetTopics.Duration)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	controller.ListenState(controller.SetTopics.Mode, func(currentState *state.ResourceState, data string) {
 		currentState.ControllerState.Mode = state.HeaterPresetMode(data)
@@ -44,7 +47,7 @@ func (c *Client) RegisterController() error {
 	controller.ListenState(controller.SetTopics.Program, func(currentState *state.ResourceState, data string) {
 		currentState.ControllerState.Program = data
 	})
-	return nil
+	return controller, nil
 }
 
 func (controller *Controller) addDurationState(topic GetTopic) error {
@@ -57,8 +60,17 @@ func (controller *Controller) addDurationState(topic GetTopic) error {
 	return nil
 }
 
-func (controller *Controller) addSelectProgram() error {
-	programPayload := getPayloadSelectProgram()
+func (controller *Controller) addRefreshController() error {
+	refreshPayload := getPayloadRefreshButton(CONTROLLER_DEVICE)
+	if err := controller.PublishConfig(refreshPayload); err != nil {
+		return fmt.Errorf("failed to publish controller state config: %w", err)
+	}
+	controller.SetTopics.Refresh = refreshPayload.CommandTopic
+	return nil
+}
+
+func (controller *Controller) AddSelectProgram(options ...string) error {
+	programPayload := getPayloadSelectProgram(options...)
 	if err := controller.PublishConfig(programPayload); err != nil {
 		return fmt.Errorf("failed to publish controller program config: %w", err)
 	}
@@ -91,6 +103,7 @@ type ControllerSetTopics struct {
 	Mode     SetTopic
 	Duration SetTopic
 	Program  SetTopic
+	Refresh  SetTopic
 }
 type ControllerGetTopics struct {
 	Mode     GetTopic
