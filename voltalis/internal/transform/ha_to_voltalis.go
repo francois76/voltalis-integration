@@ -6,11 +6,12 @@ import (
 
 	"github.com/francois76/voltalis-integration/voltalis/internal/api"
 	"github.com/francois76/voltalis-integration/voltalis/internal/mqtt"
+	"github.com/francois76/voltalis-integration/voltalis/internal/scheduler"
 	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
 // Start est le point de démarrage de la fonction qui process les évenements MQTT de façon globalisée et appelle les APIs de voltalis pour répliquer les changements
-func Start(ctx context.Context, mqttClient *mqtt.Client, apiClient *api.Client) error {
+func Start(ctx context.Context, mqttClient *mqtt.Client, apiClient *api.Client, schedule *scheduler.Scheduler) error {
 	controller, err := mqttClient.RegisterController()
 	if err != nil {
 		return err
@@ -24,6 +25,7 @@ func Start(ctx context.Context, mqttClient *mqtt.Client, apiClient *api.Client) 
 		if err := syncPrograms(controller, apiClient); err != nil {
 			slog.Error("failed to refresh programs: " + err.Error())
 		}
+		schedule.Trigger()
 	})
 
 	appliances, err := apiClient.GetAppliances()
