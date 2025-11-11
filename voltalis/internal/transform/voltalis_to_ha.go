@@ -72,7 +72,7 @@ func mapEndDate(appliance api.Appliance, heaterState *state.HeaterState) {
 	if appliance.Programming.EndDate != nil {
 		heaterState.Duration = *appliance.Programming.EndDate
 	} else {
-		heaterState.Duration = "jusqu'à ce que je change d'avis"
+		heaterState.Duration = "Jusqu'à ce que je change d'avis"
 	}
 	fmt.Println(heaterState)
 }
