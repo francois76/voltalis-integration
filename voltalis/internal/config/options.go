@@ -1,9 +1,10 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
+
+	"sigs.k8s.io/yaml"
 )
 
 type Options struct {
@@ -28,7 +29,7 @@ func LoadOptions() (*Options, error) {
 
 	// Unmarshal JSON vers la struct
 	var opts Options
-	if err := json.Unmarshal(data, &opts); err != nil {
+	if err := yaml.Unmarshal(data, &opts); err != nil {
 		return nil, fmt.Errorf("erreur de parsing JSON: %w", err)
 	}
 
