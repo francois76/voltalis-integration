@@ -60,6 +60,10 @@ func Start(ctx context.Context, mqttClient *mqtt.Client, apiClient *api.Client, 
 		}
 	}
 
+	// Marquer que toutes les subscriptions initiales sont terminées
+	// Cela permet au client MQTT de se réabonner après une reconnexion
+	mqttClient.MarkSubscriptionsComplete()
+
 	// Pré-charger les données nécessaires pour le traitement des changements
 	programs, err := apiClient.GetPrograms()
 	if err != nil {

@@ -19,8 +19,8 @@ func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string
 		panic("tentative d'écouter un topic vide, verifier que les composant ayant généré ce topic est bien instancié")
 	}
 
-	// S'abonner au topic
-	go c.Client.Subscribe(string(topic), 0, func(client mqtt.Client, msg mqtt.Message) {
+	// Créer le handler
+	handler := func(client mqtt.Client, msg mqtt.Message) {
 		data := string(msg.Payload())
 		childlog := slog.With("topic", msg.Topic(), "data", data)
 		childlog.Debug("MQTT message received")
@@ -38,5 +38,11 @@ func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string
 		c.StateManager.UpdateState(currentState)
 		relatedGetTopic := strings.Replace(msg.Topic(), "/set", "/get", 1)
 		c.PublishState(GetTopic(relatedGetTopic), data)
-	})
+	}
+
+	// Enregistrer la subscription pour le réabonnement après reconnexion
+	c.registerSubscription(string(topic), handler)
+
+	// S'abonner au topic
+	go c.Client.Subscribe(string(topic), 0, handler)
 }

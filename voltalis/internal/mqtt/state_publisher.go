@@ -176,3 +176,15 @@ func (sm *StateManager) GetCurrentState() state.ResourceState {
 	stateCopy.HeaterState = maps.Clone(sm.currentState.HeaterState)
 	return stateCopy
 }
+
+// UpdateStateWithoutNotification met à jour l'état interne sans déclencher de notification
+// Utilisé pour la synchronisation depuis Voltalis pour éviter les boucles
+func (sm *StateManager) UpdateStateWithoutNotification(newState state.ResourceState) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	currentHash := sm.computeStateHash(newState)
+	sm.currentState = &newState
+	sm.previousHash = currentHash
+	slog.Debug("État mis à jour silencieusement (sync Voltalis)")
+}

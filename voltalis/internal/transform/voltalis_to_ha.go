@@ -1,7 +1,6 @@
 package transform
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/francois76/voltalis-integration/voltalis/internal/api"
@@ -60,24 +59,31 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 		states.HeaterState[int64(appliance.ID)] = *heaterState
 	}
 	slog.With("state", states).Debug("state after voltalis fetch")
-	controllerCommands := mqttClient.BuildControllerCommandTopic()
 
-	mqttClient.PublishCommand(controllerCommands.Duration, states.ControllerState.Duration)
-	mqttClient.PublishCommand(controllerCommands.Mode, string(states.ControllerState.Mode))
-	mqttClient.PublishCommand(controllerCommands.Program, states.ControllerState.Program)
+	// Mettre à jour le StateManager SANS déclencher de notification
+	// Cela évite la boucle : sync Voltalis -> StateManager -> API Voltalis
+	mqttClient.StateManager.UpdateStateWithoutNotification(states)
+
+	// Publier sur les topics d'ÉTAT (/get) pour afficher dans Home Assistant
+	// NE PAS publier sur les topics de COMMANDE (/set) car cela déclencherait les listeners
+	controllerStates := mqttClient.BuildControllerStateTopic()
+
+	mqttClient.PublishState(controllerStates.Duration, states.ControllerState.Duration)
+	mqttClient.PublishState(controllerStates.Mode, string(states.ControllerState.Mode))
+	mqttClient.PublishState(controllerStates.Program, states.ControllerState.Program)
 	for id, heaterState := range states.HeaterState {
-		heaterCommands := mqttClient.BuildHeaterCommandTopic(id)
-		mqttClient.PublishCommand(heaterCommands.SingleDuration, heaterState.Duration)
+		heaterStates := mqttClient.BuildHeaterStateTopic(id)
+		mqttClient.PublishState(heaterStates.SingleDuration, heaterState.Duration)
 		// Toujours publier le mode
 		if heaterState.Mode != "" {
-			mqttClient.PublishCommand(heaterCommands.Mode, string(heaterState.Mode))
+			mqttClient.PublishState(heaterStates.Mode, string(heaterState.Mode))
 		}
 		// Toujours publier le preset (même si mode est heat, pour garder l'état à jour)
 		if heaterState.PresetMode != "" {
-			mqttClient.PublishCommand(heaterCommands.PresetMode, string(heaterState.PresetMode))
+			mqttClient.PublishState(heaterStates.PresetMode, string(heaterState.PresetMode))
 		}
 		if heaterState.Temperature != 0 {
-			mqttClient.PublishCommand(heaterCommands.Temperature, heaterState.Temperature)
+			mqttClient.PublishState(heaterStates.Temperature, heaterState.Temperature)
 		}
 	}
 	return nil
@@ -89,7 +95,6 @@ func mapEndDate(appliance api.Appliance, heaterState *state.HeaterState) {
 	} else {
 		heaterState.Duration = "Jusqu'à ce que je change d'avis"
 	}
-	fmt.Println(heaterState)
 }
 
 func mapPreset(appliance api.Appliance, heaterState *state.HeaterState) {
