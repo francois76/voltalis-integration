@@ -79,11 +79,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		}
 	}, func(currentState *state.ResourceState, data string) {
 		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
-			if data == "auto" {
-				heaterState.PresetMode = state.HeaterPresetMode(heater.GetTopicState(heater.SetTopics.PresetMode))
-			} else {
-				heaterState.PresetMode = state.HeaterPresetMode(data)
-			}
+			heaterState.Mode = state.HeaterMode(data)
 		})
 	})
 

@@ -51,17 +51,17 @@ type Programming struct {
 }
 
 type ManualSetting struct {
-	ID                 int        `json:"id"`
-	Enabled            bool       `json:"enabled"`
-	IDAppliance        int        `json:"idAppliance"`
-	ApplianceName      string     `json:"applianceName"`
-	ApplianceType      string     `json:"applianceType"`
-	UntilFurtherNotice bool       `json:"untilFurtherNotice"`
-	IsOn               bool       `json:"isOn"`
-	Mode               string     `json:"mode"`
-	HeatingLevel       int        `json:"heatingLevel"`
-	EndDate            *time.Time `json:"endDate"`
-	TemperatureTarget  float64    `json:"temperatureTarget"`
+	ID                 int     `json:"id"`
+	Enabled            bool    `json:"enabled"`
+	IDAppliance        int     `json:"idAppliance"`
+	ApplianceName      string  `json:"applianceName"`
+	ApplianceType      string  `json:"applianceType"`
+	UntilFurtherNotice bool    `json:"untilFurtherNotice"`
+	IsOn               bool    `json:"isOn"`
+	Mode               string  `json:"mode"`
+	HeatingLevel       int     `json:"heatingLevel"`
+	EndDate            *string `json:"endDate"`
+	TemperatureTarget  float64 `json:"temperatureTarget"`
 }
 
 type Consumption struct {
@@ -77,4 +77,47 @@ type Program struct {
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Enabled bool   `json:"enabled"`
+}
+
+// UpdateProgramRequest représente la requête pour modifier un programme
+type UpdateProgramRequest struct {
+	ID      int    `json:"id"`
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
+// QuickSettings représente un mode rapide (absence courte, présence, etc.)
+type QuickSettings struct {
+	ID                 int                `json:"id,omitempty"`
+	Name               string             `json:"name"`
+	UntilFurtherNotice bool               `json:"untilFurtherNotice"`
+	AppliancesSettings []ApplianceSetting `json:"appliancesSettings"`
+	Enabled            bool               `json:"enabled"`
+	EndDate            *string            `json:"endDate,omitempty"`
+}
+
+// ApplianceSetting représente le réglage d'un appareil dans un QuickSettings
+type ApplianceSetting struct {
+	IDAppliance       int     `json:"idAppliance"`
+	ApplianceName     string  `json:"applianceName"`
+	ApplianceType     string  `json:"applianceType"`
+	Mode              string  `json:"mode"`
+	TemperatureTarget float64 `json:"temperatureTarget"`
+	IsOn              bool    `json:"isOn"`
+}
+
+// EnableRequest représente une requête simple d'activation/désactivation
+type EnableRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+// UpdateManualSettingRequest représente la requête pour modifier un réglage manuel d'un radiateur
+type UpdateManualSettingRequest struct {
+	Enabled            bool    `json:"enabled"`
+	IDAppliance        int     `json:"idAppliance"`
+	UntilFurtherNotice bool    `json:"untilFurtherNotice"`
+	IsOn               bool    `json:"isOn"`
+	Mode               string  `json:"mode"`
+	EndDate            *string `json:"endDate,omitempty"`
+	TemperatureTarget  float64 `json:"temperatureTarget"`
 }

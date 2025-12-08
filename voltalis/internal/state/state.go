@@ -69,7 +69,10 @@ func (hs HeaterState) Compare(other Comparable) map[string]interface{} {
 		changes["Duration"] = otherHS.Duration
 	}
 	if hs.PresetMode != otherHS.PresetMode {
-		changes["Mode"] = otherHS.PresetMode
+		changes["PresetMode"] = otherHS.PresetMode
+	}
+	if hs.Mode != otherHS.Mode {
+		changes["Mode"] = otherHS.Mode
 	}
 	if hs.Temperature != otherHS.Temperature {
 		changes["Temperature"] = otherHS.Temperature

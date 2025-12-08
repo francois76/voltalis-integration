@@ -27,15 +27,21 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 	for _, appliance := range appliances {
 		heaterState := &state.HeaterState{}
 		if !appliance.Programming.IsOn {
+			// Radiateur éteint
+			heaterState.Mode = state.HeaterModeOff
 			heaterState.PresetMode = state.HeaterPresetModeAucunMode
 		} else if appliance.Programming.ProgType == "MANUAL" {
-			heaterState.Mode = state.HeaterModeHeat
-			heaterState.Temperature = appliance.Programming.TemperatureTarget
+			// ManualSetting actif - le Mode indique ECO/CONFORT/HORS_GEL/TEMPERATURE
+			mapPreset(appliance, heaterState)
+			mapEndDate(appliance, heaterState)
 		} else if appliance.Programming.ProgType == "USER" {
+			// Programme utilisateur (hebdomadaire)
+			heaterState.Mode = state.HeaterModeAuto
 			mapPreset(appliance, heaterState)
 			mapEndDate(appliance, heaterState)
 			states.ControllerState.Program = appliance.Programming.ProgName
 		} else if appliance.Programming.ProgType == "QUICK" {
+			// QuickSetting (absence courte, etc.)
 			mapPreset(appliance, heaterState)
 			mapEndDate(appliance, heaterState)
 			quickSettingsMappings := map[string]state.HeaterPresetMode{
@@ -44,6 +50,10 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 				"quicksettings.longleave":  state.HeaterPresetModeHorsGel,
 			}
 			states.ControllerState.Mode = quickSettingsMappings[appliance.Programming.ProgName]
+		} else if appliance.Programming.ProgType == "DEFAULT" {
+			// Mode par défaut (pas de programme actif, pas de manualSetting)
+			heaterState.Mode = state.HeaterModeAuto
+			mapPreset(appliance, heaterState)
 		} else {
 			slog.Error("unknown prog type", "progType", appliance.Programming.ProgType)
 		}
@@ -58,9 +68,12 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 	for id, heaterState := range states.HeaterState {
 		heaterCommands := mqttClient.BuildHeaterCommandTopic(id)
 		mqttClient.PublishCommand(heaterCommands.SingleDuration, heaterState.Duration)
+		// Toujours publier le mode
 		if heaterState.Mode != "" {
 			mqttClient.PublishCommand(heaterCommands.Mode, string(heaterState.Mode))
-		} else {
+		}
+		// Toujours publier le preset (même si mode est heat, pour garder l'état à jour)
+		if heaterState.PresetMode != "" {
 			mqttClient.PublishCommand(heaterCommands.PresetMode, string(heaterState.PresetMode))
 		}
 		if heaterState.Temperature != 0 {
@@ -88,8 +101,9 @@ func mapPreset(appliance api.Appliance, heaterState *state.HeaterState) {
 	case "HORS_GEL":
 		heaterState.PresetMode = state.HeaterPresetModeHorsGel
 	case "TEMPERATURE":
+		// Mode température personnalisée = mode "heat" dans HA
+		heaterState.Mode = state.HeaterModeHeat
 		heaterState.Temperature = appliance.Programming.TemperatureTarget
-		heaterState.Mode = state.HeaterModeAuto
 	default:
 		heaterState.PresetMode = state.HeaterPresetModeAucunMode
 	}
