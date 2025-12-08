@@ -18,11 +18,10 @@ func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string
 	if topic == "" {
 		panic("tentative d'écouter un topic vide, verifier que les composant ayant généré ce topic est bien instancié")
 	}
+
+	// S'abonner au topic
 	go c.Client.Subscribe(string(topic), 0, func(client mqtt.Client, msg mqtt.Message) {
 		data := string(msg.Payload())
-		// if c.stateTopicMap[topic] == data {
-		// 	return
-		// }
 		childlog := slog.With("topic", msg.Topic(), "data", data)
 		childlog.Debug("MQTT message received")
 

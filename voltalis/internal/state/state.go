@@ -35,7 +35,7 @@ const (
 	HeaterPresetModeConfort   HeaterPresetMode = "Confort"
 	HeaterPresetModeEco       HeaterPresetMode = "Eco"
 	HeaterPresetModeHorsGel   HeaterPresetMode = "Hors-Gel"
-	HeaterPresetModeAucunMode HeaterPresetMode = "none"
+	HeaterPresetModeAucunMode HeaterPresetMode = "Aucun mode"
 )
 
 // Interface pour les types qui peuvent être comparés

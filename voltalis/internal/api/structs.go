@@ -89,11 +89,11 @@ type UpdateProgramRequest struct {
 // QuickSettings représente un mode rapide (absence courte, présence, etc.)
 type QuickSettings struct {
 	ID                 int                `json:"id,omitempty"`
-	Name               string             `json:"name"`
+	Name               string             `json:"name,omitempty"`
 	UntilFurtherNotice bool               `json:"untilFurtherNotice"`
 	AppliancesSettings []ApplianceSetting `json:"appliancesSettings"`
-	Enabled            bool               `json:"enabled"`
-	EndDate            *string            `json:"endDate,omitempty"`
+	Enabled            bool               `json:"enabled,omitempty"`
+	ModeEndDate        *string            `json:"modeEndDate,omitempty"`
 }
 
 // ApplianceSetting représente le réglage d'un appareil dans un QuickSettings

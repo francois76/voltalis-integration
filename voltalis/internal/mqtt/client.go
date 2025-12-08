@@ -1,7 +1,9 @@
 package mqtt
 
 import (
+	"log/slog"
 	"sync"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/francois76/voltalis-integration/voltalis/internal/state"
@@ -17,19 +19,39 @@ type Client struct {
 func InitClient(broker string, clientID string, password string) (*Client, error) {
 	opts := mqtt.NewClientOptions().
 		AddBroker(broker).
-		SetClientID(clientID)
+		SetClientID(clientID).
+		SetAutoReconnect(true).
+		SetConnectRetry(true).
+		SetConnectRetryInterval(5 * time.Second).
+		SetMaxReconnectInterval(30 * time.Second).
+		SetKeepAlive(30 * time.Second).
+		SetPingTimeout(10 * time.Second).
+		SetCleanSession(false). // Garde les subscriptions côté broker après reconnexion
+		SetConnectionLostHandler(func(client mqtt.Client, err error) {
+			slog.Error("Connexion MQTT perdue", "error", err)
+		}).
+		SetReconnectingHandler(func(client mqtt.Client, opts *mqtt.ClientOptions) {
+			slog.Warn("Tentative de reconnexion MQTT...")
+		}).
+		SetOnConnectHandler(func(client mqtt.Client) {
+			slog.Info("Connexion MQTT établie")
+		})
+
 	if password != "" {
 		opts = opts.SetPassword(password)
 	}
+
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
 	}
+
 	stateManager := NewStateManager()
 	stateManager.UpdateState(state.ResourceState{
 		ControllerState: state.ControllerState{},
 		HeaterState:     map[int64]state.HeaterState{},
 	})
+
 	return &Client{
 		Client:        client,
 		stateTopicMap: make(map[SetTopic]string),

@@ -258,35 +258,41 @@ func handleModeChange(apiClient *api.Client, mode state.HeaterPresetMode, durati
 		})
 	}
 
-	// Calculer untilFurtherNotice et endDate en fonction de la durée
+	// Calculer untilFurtherNotice et modeEndDate en fonction de la durée
 	untilFurtherNotice := true
-	var endDate *string
+	var modeEndDate *string
 
 	if duration != "" && duration != "Jusqu'à ce que je change d'avis" {
 		untilFurtherNotice = false
 		// Parser la durée depuis les constantes MQTT
 		parsedDuration := parseDuration(duration)
 		if parsedDuration > 0 {
-			end := time.Now().Add(parsedDuration).Format(time.RFC3339)
-			endDate = &end
+			// Format sans timezone comme attendu par l'API Voltalis
+			end := time.Now().Add(parsedDuration).Format("2006-01-02T15:04:05")
+			modeEndDate = &end
 		}
 	}
 
-	// Mettre à jour le quicksetting
+	// Étape 1: Mettre à jour le quicksetting (sans enabled)
 	updatedQS := api.QuickSettings{
-		Name:               qsName,
 		UntilFurtherNotice: untilFurtherNotice,
 		AppliancesSettings: appSettings,
-		Enabled:            true,
-		EndDate:            endDate,
+		ModeEndDate:        modeEndDate,
 	}
 
 	if err := apiClient.UpdateQuickSettings(targetQS.ID, updatedQS); err != nil {
 		slog.Error("failed to update quicksetting", "name", qsName, "error", err)
 		return err
 	}
+	slog.Debug("QuickSetting mis à jour", "name", qsName, "untilFurtherNotice", untilFurtherNotice)
 
-	slog.Info("QuickSetting mis à jour et activé", "name", qsName, "untilFurtherNotice", untilFurtherNotice)
+	// Étape 2: Activer le quicksetting via l'endpoint /enable
+	if err := apiClient.EnableQuickSetting(targetQS.ID, true); err != nil {
+		slog.Error("failed to enable quicksetting", "name", qsName, "error", err)
+		return err
+	}
+
+	slog.Info("QuickSetting activé", "name", qsName, "untilFurtherNotice", untilFurtherNotice)
 	return nil
 }
 

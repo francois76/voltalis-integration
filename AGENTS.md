@@ -222,6 +222,36 @@ Les handlers dans `ha_to_voltalis.go` retournent `(bool, error)` :
 - [x] Correction du mapping ProgType MANUAL → preset vs température
 - [ ] Tests automatisés
 
+## 🛠️ Debug & Logs
+
+### Lancer / relancer l'application Voltalis
+1. Se placer à la racine du repo : `cd /workspaces/voltalis-integration`.
+2. S'assurer que le stack Home Assistant est en marche si nécessaire : `cd test && docker-compose up -d` puis revenir à la racine.
+3. Créer un dossier de logs local si besoin : `mkdir -p logs`.
+4. Lancer l'application en capturant les logs :
+   ```bash
+   timestamp="$(date +"%Y%m%d_%H%M%S")"
+   ./test.sh 2>&1 | tee "logs/voltalis_${timestamp}.log"
+   ln -sfn "voltalis_${timestamp}.log" logs/voltalis_latest.log
+   ```
+   - `DEBUG` et `OPTIONS_FILE` peuvent être surchargées avant l'exécution si besoin.
+   - `Ctrl+C` interrompt l'exécution ; relancer la commande génère un nouveau fichier.
+5. Lire le dernier log : `less logs/voltalis_latest.log` ou `tail -f logs/voltalis_latest.log`.
+
+### Consulter les logs Home Assistant
+- Pour afficher le fichier directement : `tail -f test/hass_config/home-assistant.log`.
+- Pour suivre les logs Docker (si stack lancée) :
+  ```bash
+  cd test
+  docker-compose logs -f homeassistant
+  ```
+- Pour Mosquitto : `docker-compose logs -f mosquitto`.
+- Arrêt du stack de test : `docker-compose down` depuis `test`.
+
+### Nettoyage des logs locaux
+- Lister les logs : `ls -1 logs/voltalis_*.log`.
+- Supprimer les anciens : `rm logs/voltalis_2024*.log` (adapter le pattern).
+
 ## 🧪 Test
 
 ```bash
