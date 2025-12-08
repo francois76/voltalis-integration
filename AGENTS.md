@@ -55,13 +55,16 @@ Package principal pour créer et gérer les entités Home Assistant via MQTT Dis
 1. `scheduler` déclenche `transform.SyncVoltalisHeatersToHA()` périodiquement
 2. Appels API Voltalis : `GetAppliances()`, `GetPrograms()`
 3. Mapping `api.Appliance` → `state.HeaterState` et `state.ControllerState`
-4. Publication MQTT sur les topics de commande (`/set`)
+4. Mise à jour du StateManager via `UpdateStateWithoutNotification()` (sans déclencher de notification)
+5. Publication MQTT sur les topics d'état (`/get`) via `PublishState()`
+6. Publication de l'`action` pour l'indicateur visuel via `presetToAction()`
 
 ### Home Assistant → Voltalis (Écriture)
 1. `mqtt.ListenState()` écoute les changements sur les topics `/set`
 2. Mise à jour du `StateManager` avec comparaison de l'état précédent
 3. Envoi des changements via le channel `StateChange`
-4. `transform.Start()` reçoit les changements et doit appeler l'API Voltalis
+4. `transform.Start()` reçoit les changements et appelle l'API Voltalis
+5. Si changements appliqués → `scheduler.Trigger()` pour resync
 
 ## 🎛️ Mapping des Concepts
 
@@ -117,14 +120,21 @@ PUT /api/site/{siteId}/programming/program/{programId}
 Body: { "id": X, "name": "...", "enabled": true/false }
 
 PUT /api/site/{siteId}/quicksettings/{qsId}
-Body: { "name": "quicksettings.xxx", "untilFurtherNotice": true, "appliancesSettings": [...], "enabled": true }
+Body: { "untilFurtherNotice": true, "appliancesSettings": [...] }
 
 PUT /api/site/{siteId}/quicksettings/{qsId}/enable
 Body: { "enabled": true/false }
 
 PUT /api/site/{siteId}/manualsetting/{manualSettingId}
-Body: { "enabled": true, "idAppliance": X, "untilFurtherNotice": false, "isOn": true, "mode": "ECO", "endDate": "2025-12-08T23:20:34", "temperatureTarget": 20 }
+Body: { "enabled": true, "idAppliance": X, "untilFurtherNotice": false, "isOn": true, "mode": "ECO", "modeEndDate": "2025-12-08T23:20:34", "temperatureTarget": 20 }
 ```
+
+### ⚠️ Activation des QuickSettings (2 appels requis)
+Pour activer un quicksetting, il faut faire **2 appels API** :
+1. `PUT /quicksettings/{id}` - Met à jour les paramètres (durée, appliances)
+2. `PUT /quicksettings/{id}/enable` - Active le quicksetting avec `{"enabled": true}`
+
+Si on ne fait qu'un seul appel, le quicksetting peut ne pas s'activer correctement.
 
 ## 🏠 Entités Home Assistant Créées
 
@@ -181,8 +191,10 @@ L'API Voltalis renvoie **toujours** une valeur `temperatureTarget` même quand l
 - `IsOn: true` = radiateur actif (chauffe selon le mode)
 - `IsOn: false` = radiateur éteint (mode `off` dans HA)
 
-### 5. Format de date pour `endDate`
+### 5. Format de date pour `endDate` / `modeEndDate`
 Format attendu : `2006-01-02T15:04:05` (sans timezone)
+
+**Attention :** Pour les QuickSettings, le champ s'appelle `modeEndDate` (pas `endDate`).
 
 ## 🔧 Logique de Synchronisation
 
@@ -210,6 +222,36 @@ Les handlers dans `ha_to_voltalis.go` retournent `(bool, error)` :
 
 **Ignorer les changements au démarrage :** Vérifier `changes["initial_state"]` pour éviter d'appeler l'API lors de l'initialisation.
 
+## ⚠️ Pièges MQTT & Boucles (IMPORTANT)
+
+### 1. Séparation des topics `/set` et `/get`
+- **Topics `/set`** : Commandes envoyées par Home Assistant → écoutés par les listeners
+- **Topics `/get`** : État publié vers Home Assistant → affichage dans l'UI
+
+**CRITIQUE :** Le sync Voltalis → HA doit publier sur les topics `/get` (via `PublishState`) et **jamais** sur les topics `/set` (via `PublishCommand`). Sinon, les listeners reçoivent les publications et déclenchent des changements en cascade → boucle infinie.
+
+### 2. UpdateStateWithoutNotification
+Lors du sync Voltalis → HA, utiliser `StateManager.UpdateStateWithoutNotification()` pour mettre à jour l'état interne **sans** déclencher de notification aux subscribers. Cela évite que le sync déclenche des appels API vers Voltalis.
+
+### 3. Topic Action pour l'indicateur visuel
+L'`action` du climate (heating/cooling/idle/off) est utilisée comme indicateur visuel dans HA (bindé aux presets). Lors du sync Voltalis → HA, il faut publier explicitement sur le topic `action` en fonction du preset :
+- `Confort` → `heating`
+- `Eco` → `cooling`  
+- `Hors-Gel` → `idle`
+- Mode `off` → `off`
+- Mode `heat` → `heating`
+
+Utiliser `presetToAction()` dans `voltalis_to_ha.go` et `recomputeState()` dans `heater.go`.
+
+### 4. Reconnexion MQTT
+Le client MQTT peut perdre la connexion (erreur EOF). Pour gérer cela :
+- `SetAutoReconnect(true)` et `SetConnectRetry(true)` dans les options
+- Stocker les subscriptions dans `Client.subscriptions`
+- `MarkSubscriptionsComplete()` après l'initialisation des listeners
+- `resubscribeAll()` dans le `OnConnectHandler` (uniquement si `hasConnectedOnce` est true)
+
+**Attention :** Ne pas réabonner lors de la première connexion, sinon risque de boucle.
+
 ## 🚧 TODO / En cours
 
 - [x] Implémentation de `ha_to_voltalis.go` pour appeler les APIs de modification
@@ -220,6 +262,9 @@ Les handlers dans `ha_to_voltalis.go` retournent `(bool, error)` :
 - [x] Gestion du mode off (extinction radiateur)
 - [x] Gestion du retour au mode auto (désactivation manualSetting)
 - [x] Correction du mapping ProgType MANUAL → preset vs température
+- [x] Correction boucle infinie MQTT (séparation topics /set et /get)
+- [x] Reconnexion MQTT automatique avec réabonnement aux topics
+- [x] Publication de l'action pour l'indicateur visuel lors du sync
 - [ ] Tests automatisés
 
 ## 🛠️ Debug & Logs
