@@ -171,5 +171,6 @@ func (c *Client) BuildHeaterStateTopic(id int64) HeaterGetTopics {
 		PresetMode:     climate.PresetModeStateTopic,
 		Temperature:    climate.TemperatureStateTopic,
 		SingleDuration: durationPayload.StateTopic,
+		Action:         NewHeaterTopic[GetTopic](id, "action"),
 	}
 }

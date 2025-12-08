@@ -41,6 +41,7 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 			states.ControllerState.Program = appliance.Programming.ProgName
 		} else if appliance.Programming.ProgType == "QUICK" {
 			// QuickSetting (absence courte, etc.)
+			heaterState.Mode = state.HeaterModeAuto
 			mapPreset(appliance, heaterState)
 			mapEndDate(appliance, heaterState)
 			quickSettingsMappings := map[string]state.HeaterPresetMode{
@@ -85,6 +86,9 @@ func SyncVoltalisHeatersToHA(mqttClient *mqtt.Client, apiClient *api.Client) err
 		if heaterState.Temperature != 0 {
 			mqttClient.PublishState(heaterStates.Temperature, heaterState.Temperature)
 		}
+		// Publier l'action en fonction du preset (pour l'indicateur visuel)
+		action := presetToAction(heaterState.PresetMode, heaterState.Mode)
+		mqttClient.PublishState(heaterStates.Action, string(action))
 	}
 	return nil
 }
@@ -101,15 +105,39 @@ func mapPreset(appliance api.Appliance, heaterState *state.HeaterState) {
 	switch appliance.Programming.Mode {
 	case "CONFORT":
 		heaterState.PresetMode = state.HeaterPresetModeConfort
+		heaterState.Mode = state.HeaterModeAuto
 	case "ECO":
 		heaterState.PresetMode = state.HeaterPresetModeEco
+		heaterState.Mode = state.HeaterModeAuto
 	case "HORS_GEL":
 		heaterState.PresetMode = state.HeaterPresetModeHorsGel
+		heaterState.Mode = state.HeaterModeAuto
 	case "TEMPERATURE":
 		// Mode température personnalisée = mode "heat" dans HA
 		heaterState.Mode = state.HeaterModeHeat
 		heaterState.Temperature = appliance.Programming.TemperatureTarget
 	default:
 		heaterState.PresetMode = state.HeaterPresetModeAucunMode
+		heaterState.Mode = state.HeaterModeAuto
+	}
+}
+
+// presetToAction convertit un preset en action pour l'indicateur visuel HA
+func presetToAction(preset state.HeaterPresetMode, mode state.HeaterMode) mqtt.HeaterAction {
+	if mode == state.HeaterModeOff {
+		return mqtt.HeaterActionOff
+	}
+	if mode == state.HeaterModeHeat {
+		return mqtt.HeaterActionHeating
+	}
+	switch preset {
+	case state.HeaterPresetModeConfort:
+		return mqtt.HeaterActionHeating
+	case state.HeaterPresetModeEco:
+		return mqtt.HeaterActionCooling
+	case state.HeaterPresetModeHorsGel:
+		return mqtt.HeaterActionIdle
+	default:
+		return mqtt.HeaterActionIdle
 	}
 }
