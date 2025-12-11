@@ -2,6 +2,8 @@ package mqtt
 
 import (
 	"fmt"
+
+	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
 var CONTROLLER_DEVICE = DeviceInfo{
@@ -12,41 +14,44 @@ var CONTROLLER_DEVICE = DeviceInfo{
 	SwVersion:    "0.1.0",
 }
 
-func (c *Client) RegisterController() error {
-	controller := Controller{
+func (c *Client) RegisterController() (*Controller, error) {
+	controller := &Controller{
 		Client:    c,
 		GetTopics: ControllerGetTopics{},
 		SetTopics: ControllerSetTopics{},
 	}
 
 	if err := controller.addSelectMode(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := controller.addSelectDuration(); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := controller.addSelectProgram(); err != nil {
-		return err
+	if err := controller.AddSelectProgram(); err != nil {
+		return nil, err
 	}
-	err := controller.addDurationState()
+	if err := controller.addRefreshController(); err != nil {
+		return nil, err
+	}
+	err := controller.addDurationState(controller.GetTopics.Duration)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	controller.ListenState(controller.SetTopics.Mode, func(currentState *ResourceState, data string) {
-		currentState.ControllerState.Mode = data
+	controller.ListenState(controller.SetTopics.Mode, func(currentState *state.ResourceState, data string) {
+		currentState.ControllerState.Mode = state.HeaterPresetMode(data)
 	})
-	controller.ListenState(controller.SetTopics.Duration, func(currentState *ResourceState, data string) {
+	controller.ListenState(controller.SetTopics.Duration, func(currentState *state.ResourceState, data string) {
 		currentState.ControllerState.Duration = data
 	})
-	controller.ListenState(controller.SetTopics.Program, func(currentState *ResourceState, data string) {
+	controller.ListenState(controller.SetTopics.Program, func(currentState *state.ResourceState, data string) {
 		currentState.ControllerState.Program = data
 	})
-	return nil
+	return controller, nil
 }
 
-func (controller *Controller) addDurationState() error {
-	statePayload := getPayloadDureeMode(CONTROLLER_DEVICE)
+func (controller *Controller) addDurationState(topic GetTopic) error {
+	statePayload := getPayloadDureeMode(CONTROLLER_DEVICE, topic)
 	if err := controller.PublishConfig(statePayload); err != nil {
 		return fmt.Errorf("failed to publish controller state config: %w", err)
 	}
@@ -55,8 +60,17 @@ func (controller *Controller) addDurationState() error {
 	return nil
 }
 
-func (controller *Controller) addSelectProgram() error {
-	programPayload := getPayloadSelectProgram()
+func (controller *Controller) addRefreshController() error {
+	refreshPayload := getPayloadRefreshButton(CONTROLLER_DEVICE)
+	if err := controller.PublishConfig(refreshPayload); err != nil {
+		return fmt.Errorf("failed to publish controller state config: %w", err)
+	}
+	controller.SetTopics.Refresh = refreshPayload.CommandTopic
+	return nil
+}
+
+func (controller *Controller) AddSelectProgram(options ...string) error {
+	programPayload := getPayloadSelectProgram(options...)
 	if err := controller.PublishConfig(programPayload); err != nil {
 		return fmt.Errorf("failed to publish controller program config: %w", err)
 	}
@@ -89,6 +103,7 @@ type ControllerSetTopics struct {
 	Mode     SetTopic
 	Duration SetTopic
 	Program  SetTopic
+	Refresh  SetTopic
 }
 type ControllerGetTopics struct {
 	Mode     GetTopic
@@ -101,16 +116,4 @@ type Controller struct {
 	*Client
 	SetTopics ControllerSetTopics
 	GetTopics ControllerGetTopics
-}
-
-func getPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
-	identifier := CONTROLLER_DEVICE.Identifiers[0] + "_program"
-	return &SelectConfigPayload[string]{
-		UniqueID:     identifier,
-		Name:         "Sélectionner le programme",
-		CommandTopic: newTopicName[SetTopic](identifier),
-		StateTopic:   newTopicName[GetTopic](identifier),
-		Options:      append([]string{"Aucun programme"}, options...),
-		Device:       CONTROLLER_DEVICE,
-	}
 }

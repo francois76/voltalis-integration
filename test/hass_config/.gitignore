@@ -1,3 +1,7 @@
 *.log*
-.storage/*
 home-assistant_v2.db-*
+home-assistant_v2.db
+.ha_run.lock
+.storage/auth
+.storage/http.auth
+.storage/core.restore_state

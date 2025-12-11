@@ -5,32 +5,40 @@ type payload interface {
 	getComponent() component
 }
 
-type HeaterConfigPayload struct {
+type ClimateCommandPayload struct {
+	ModeCommandTopic        SetTopic `json:"mode_command_topic"`
+	PresetModeCommandTopic  SetTopic `json:"preset_mode_command_topic,omitempty"`
+	TemperatureCommandTopic SetTopic `json:"temperature_command_topic"`
+}
+
+type ClimateStatePayload struct {
+	CommandTopic            GetTopic `json:"command_topic"`
+	ModeStateTopic          GetTopic `json:"mode_state_topic"`
+	PresetModeStateTopic    GetTopic `json:"preset_mode_state_topic,omitempty"`
+	TemperatureStateTopic   GetTopic `json:"temperature_state_topic"`
+	CurrentTemperatureTopic GetTopic `json:"current_temperature_topic"`
+}
+
+type ClimateConfigPayload struct {
+	ClimateCommandPayload
+	ClimateStatePayload
 	ActionTopic              GetTopic           `json:"action_topic,omitempty"`
 	Name                     string             `json:"name"`
 	UniqueID                 string             `json:"unique_id"`
-	CommandTopic             GetTopic           `json:"command_topic"`
-	ModeStateTopic           GetTopic           `json:"mode_state_topic"`
-	ModeCommandTopic         SetTopic           `json:"mode_command_topic"`
 	PresetModes              []HeaterPresetMode `json:"preset_modes,omitempty"`
-	PresetModeCommandTopic   SetTopic           `json:"preset_mode_command_topic,omitempty"`
-	PresetModeStateTopic     GetTopic           `json:"preset_mode_state_topic,omitempty"`
-	TemperatureStateTopic    GetTopic           `json:"temperature_state_topic"`
-	TemperatureCommandTopic  SetTopic           `json:"temperature_command_topic"`
 	MinTemp                  float64            `json:"min_temp"`
 	MaxTemp                  float64            `json:"max_temp"`
 	TempStep                 float64            `json:"temp_step"`
 	Modes                    []HeaterMode       `json:"modes"`
-	CurrentTemperatureTopic  GetTopic           `json:"current_temperature_topic"`
 	Device                   DeviceInfo         `json:"device"`
 	TemperatureStateTemplate string             `json:"temperature_state_template,omitempty"`
 }
 
-func (p *HeaterConfigPayload) getIdentifier() string {
+func (p *ClimateConfigPayload) getIdentifier() string {
 	return p.UniqueID
 }
 
-func (p *HeaterConfigPayload) getComponent() component {
+func (p *ClimateConfigPayload) getComponent() component {
 	return ComponentClimate
 }
 
@@ -64,6 +72,21 @@ func (p *SensorConfigPayload) getIdentifier() string {
 
 func (p *SensorConfigPayload) getComponent() component {
 	return ComponentSensor
+}
+
+type ButtonConfigPayload struct {
+	Name         string     `json:"name"`
+	UniqueID     string     `json:"unique_id"`
+	CommandTopic SetTopic   `json:"command_topic"`
+	Device       DeviceInfo `json:"device"`
+}
+
+func (b *ButtonConfigPayload) getIdentifier() string {
+	return b.UniqueID
+}
+
+func (b *ButtonConfigPayload) getComponent() component {
+	return ComponentButton
 }
 
 // DeviceInfo représente les informations du périphérique pour Home Assistant

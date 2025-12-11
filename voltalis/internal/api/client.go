@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -71,7 +72,25 @@ func (c *Client) get(path string, out interface{}) error {
 
 func (c *Client) put(path string, body interface{}, out interface{}) error {
 	b, _ := json.Marshal(body)
+	slog.Debug("API PUT request", "path", path, "body", string(b))
 	req, _ := http.NewRequest("PUT", c.BaseURL+path, bytes.NewBuffer(b))
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if out != nil {
+		return json.NewDecoder(resp.Body).Decode(out)
+	}
+	return nil
+}
+
+func (c *Client) post(path string, body interface{}, out interface{}) error {
+	b, _ := json.Marshal(body)
+	slog.Debug("API POST request", "path", path, "body", string(b))
+	req, _ := http.NewRequest("POST", c.BaseURL+path, bytes.NewBuffer(b))
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.HTTPClient.Do(req)

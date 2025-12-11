@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+
+	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
 func (c *Client) RegisterHeater(id int64, name string) error {
@@ -12,7 +14,7 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		GetTopics: HeaterGetTopics{},
 		SetTopics: HeaterSetTopics{},
 	}
-	c.StateManager.currentState.HeaterState[id] = HeaterState{}
+	c.StateManager.currentState.HeaterState[id] = state.HeaterState{}
 	payload, err := heater.addClimate(id, name)
 	if err != nil {
 		return err
@@ -26,18 +28,18 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		return err
 	}
 
-	if err := heater.addDurationState(payload); err != nil {
+	if err := heater.addDurationState(payload, heater.GetTopics.SingleDuration); err != nil {
 		return err
 	}
 
-	updateHeater := func(currentState *ResourceState, data string, heaterTreatment func(heaterState *HeaterState, data string)) {
+	updateHeater := func(currentState *state.ResourceState, data string, heaterTreatment func(heaterState *state.HeaterState, data string)) {
 		heaterState := currentState.HeaterState[id]
 		heaterTreatment(&heaterState, data)
 		currentState.HeaterState[id] = heaterState
 	}
 
-	heater.ListenState(heater.SetTopics.Temperature, func(currentState *ResourceState, data string) {
-		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+	heater.ListenState(heater.SetTopics.Temperature, func(currentState *state.ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
 			dataFloat, err := strconv.ParseFloat(data, 64)
 			if err != nil {
 				heaterState.Temperature = -1
@@ -46,17 +48,18 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 			}
 		})
 	})
-	heater.ListenState(heater.SetTopics.SingleDuration, func(currentState *ResourceState, data string) {
-		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
+	heater.ListenState(heater.SetTopics.SingleDuration, func(currentState *state.ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
 			heaterState.Duration = data
 		})
 	})
 
 	heater.ListenStateWithPreHook(heater.SetTopics.PresetMode, func(data string) {
 		heater.recomputeState(data)
-	}, func(currentState *ResourceState, data string) {
-		updateHeater(currentState, data, func(heaterState *HeaterState, data string) {
-			heaterState.Mode = data
+	}, func(currentState *state.ResourceState, data string) {
+		fmt.Println("test")
+		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
+			heaterState.PresetMode = state.HeaterPresetMode(data)
 		})
 	})
 
@@ -74,22 +77,25 @@ func (c *Client) RegisterHeater(id int64, name string) error {
 		default:
 			slog.Warn("Unknown mode received", "value", data)
 		}
-	}, func(currentState *ResourceState, data string) {})
+	}, func(currentState *state.ResourceState, data string) {
+		updateHeater(currentState, data, func(heaterState *state.HeaterState, data string) {
+			heaterState.Mode = state.HeaterMode(data)
+		})
+	})
 
 	return nil
 }
 
-func (h *Heater) addDurationState(payload *HeaterConfigPayload) error {
-	statePayload := getPayloadDureeMode(payload.Device)
+func (h *Heater) addDurationState(payload *ClimateConfigPayload, topic GetTopic) error {
+	statePayload := getPayloadDureeMode(payload.Device, topic)
 	if err := h.PublishConfig(statePayload); err != nil {
 		return fmt.Errorf("failed to publish heater state config: %w", err)
 	}
-	h.GetTopics.State = statePayload.StateTopic
 	h.PublishState(statePayload.StateTopic, "Initialisation de l'intégration voltalis...")
 	return nil
 }
 
-func (h *Heater) addSelectDuration(payload *HeaterConfigPayload) error {
+func (h *Heater) addSelectDuration(payload *ClimateConfigPayload) error {
 	durationPayload := getPayloadSelectDuration(payload.Device)
 	if err := h.PublishConfig(durationPayload); err != nil {
 		return fmt.Errorf("failed to publish heater duration config: %w", err)
@@ -99,7 +105,7 @@ func (h *Heater) addSelectDuration(payload *HeaterConfigPayload) error {
 	return nil
 }
 
-func (h *Heater) addSelectMode(payload *HeaterConfigPayload) error {
+func (h *Heater) addSelectMode(payload *ClimateConfigPayload) error {
 	selectPresetPayload := getPayloadSelectMode(payload.Device, PRESET_SELECT_ONE_HEATER...)
 	// le select de preset est juste un remapping sur le climate. Donc on ne déclare pas de topic dédiés
 	// (on écrase ceux qui sont créés par la méthode au dessus)
@@ -111,32 +117,20 @@ func (h *Heater) addSelectMode(payload *HeaterConfigPayload) error {
 	return nil
 }
 
-func (h *Heater) addClimate(id int64, name string) (*HeaterConfigPayload, error) {
-	payload := &HeaterConfigPayload{
-		ActionTopic:      newHeaterTopic[GetTopic](id, "action"),
-		UniqueID:         fmt.Sprintf("voltalis_heater_%d", id),
-		Name:             "Temperature",
-		CommandTopic:     newHeaterTopic[GetTopic](id, "set"),
-		ModeStateTopic:   newHeaterTopic[GetTopic](id, "mode"),
-		ModeCommandTopic: newHeaterTopic[SetTopic](id, "mode"),
+func (h *Heater) addClimate(id int64, name string) (*ClimateConfigPayload, error) {
+	payload := &ClimateConfigPayload{
+		ClimateCommandPayload: h.buildClimateCommands(id),
+		ClimateStatePayload:   h.buildClimateStates(id),
+		ActionTopic:           NewHeaterTopic[GetTopic](id, "action"),
+		UniqueID:              fmt.Sprintf("voltalis_heater_%d", id),
+		Name:                  "Temperature",
 		PresetModes: []HeaterPresetMode{HeaterPresetModeHorsGel,
 			HeaterPresetModeEco, HeaterPresetModeConfort},
-		PresetModeCommandTopic:  newHeaterTopic[SetTopic](id, "preset_mode"),
-		PresetModeStateTopic:    newHeaterTopic[GetTopic](id, "preset_mode"),
-		TemperatureStateTopic:   newHeaterTopic[GetTopic](id, "temp"),
-		TemperatureCommandTopic: newHeaterTopic[SetTopic](id, "temp"),
-		MinTemp:                 15,
-		MaxTemp:                 25,
-		TempStep:                0.5,
-		Modes:                   []HeaterMode{HeaterModeOff, HeaterModeAuto, HeaterModeHeat},
-		CurrentTemperatureTopic: newHeaterTopic[GetTopic](id, "current_temp"),
-		Device: DeviceInfo{
-			Identifiers:  []string{"voltalis_heater_" + fmt.Sprint(id)},
-			Manufacturer: "Voltalis",
-			Name:         "Radiateur " + name,
-			Model:        "Radiateur voltalis",
-			SwVersion:    "0.1.0",
-		},
+		MinTemp:  15,
+		MaxTemp:  25,
+		TempStep: 0.5,
+		Modes:    []HeaterMode{HeaterModeOff, HeaterModeAuto, HeaterModeHeat},
+		Device:   buildDeviceInfo(id, name),
 	}
 	if err := h.PublishConfig(payload); err != nil {
 		return nil, fmt.Errorf("failed to publish heater config: %w", err)
@@ -150,6 +144,16 @@ func (h *Heater) addClimate(id int64, name string) (*HeaterConfigPayload, error)
 	h.GetTopics.PresetMode = payload.PresetModeStateTopic
 	h.GetTopics.CurrentTemperature = payload.CurrentTemperatureTopic
 	return payload, nil
+}
+
+func buildDeviceInfo(id int64, name string) DeviceInfo {
+	return DeviceInfo{
+		Identifiers:  []string{"voltalis_heater_" + fmt.Sprint(id)},
+		Manufacturer: "Voltalis",
+		Name:         "Radiateur " + name,
+		Model:        "Radiateur voltalis",
+		SwVersion:    "0.1.0",
+	}
 }
 
 func (h *Heater) recomputeState(data string) {
@@ -199,7 +203,6 @@ type HeaterGetTopics struct {
 	Temperature        GetTopic
 	CurrentTemperature GetTopic
 	SingleDuration     GetTopic
-	State              GetTopic
 }
 
 type Heater struct {
@@ -208,6 +211,6 @@ type Heater struct {
 	GetTopics HeaterGetTopics
 }
 
-func newHeaterTopic[T Topic](id int64, suffix string) T {
+func NewHeaterTopic[T Topic](id int64, suffix string) T {
 	return newTopicName[T](fmt.Sprintf("heater/%d/%s", id, suffix))
 }

@@ -5,23 +5,23 @@ import (
 	"strings"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/francois76/voltalis-integration/voltalis/internal/state"
 )
 
 type SetTopic string
 
-func (c *Client) ListenState(topic SetTopic, publishState func(currentState *ResourceState, data string)) {
+func (c *Client) ListenState(topic SetTopic, publishState func(currentState *state.ResourceState, data string)) {
 	c.ListenStateWithPreHook(topic, nil, publishState)
 }
 
-func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string), publishState func(currentState *ResourceState, data string)) {
+func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string), publishState func(currentState *state.ResourceState, data string)) {
 	if topic == "" {
 		panic("tentative d'écouter un topic vide, verifier que les composant ayant généré ce topic est bien instancié")
 	}
-	go c.Client.Subscribe(string(topic), 0, func(client mqtt.Client, msg mqtt.Message) {
+
+	// Créer le handler
+	handler := func(client mqtt.Client, msg mqtt.Message) {
 		data := string(msg.Payload())
-		// if c.stateTopicMap[topic] == data {
-		// 	return
-		// }
 		childlog := slog.With("topic", msg.Topic(), "data", data)
 		childlog.Debug("MQTT message received")
 
@@ -38,5 +38,11 @@ func (c *Client) ListenStateWithPreHook(topic SetTopic, preHook func(data string
 		c.StateManager.UpdateState(currentState)
 		relatedGetTopic := strings.Replace(msg.Topic(), "/set", "/get", 1)
 		c.PublishState(GetTopic(relatedGetTopic), data)
-	})
+	}
+
+	// Enregistrer la subscription pour le réabonnement après reconnexion
+	c.registerSubscription(string(topic), handler)
+
+	// S'abonner au topic
+	go c.Client.Subscribe(string(topic), 0, handler)
 }

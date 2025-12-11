@@ -1,0 +1,320 @@
+# Voltalis Integration - Documentation Agent
+
+Ce document sert de référence rapide pour comprendre l'architecture et les concepts de ce projet.
+
+## 🎯 Objectif du Projet
+
+Cette application Go fait le pont entre **Home Assistant** (via MQTT) et l'**API Voltalis** pour le contrôle de radiateurs connectés. L'objectif est de mapper la logique Voltalis vers les entités et concepts Home Assistant.
+
+## 🏗️ Architecture Globale
+
+```
+┌─────────────────┐       MQTT        ┌─────────────────────────┐       HTTP        ┌─────────────────┐
+│  Home Assistant │◄─────────────────►│   Voltalis Integration  │◄────────────────►│   API Voltalis  │
+│     (IHM)       │                   │        (Go App)         │                  │  myvoltalis.com │
+└─────────────────┘                   └─────────────────────────┘                  └─────────────────┘
+```
+
+## 📁 Structure des Packages
+
+### `/internal/api` - Client API Voltalis
+- **`client.go`** : Client HTTP avec authentification Bearer token, méthodes `get()` et `put()`
+- **`methods.go`** : Méthodes métier (GetMe, GetAppliances, GetPrograms, EnableQuickSetting, etc.)
+- **`structs.go`** : Structures de données correspondant aux réponses API Voltalis
+
+### `/internal/mqtt` - Intégration MQTT Home Assistant
+Package principal pour créer et gérer les entités Home Assistant via MQTT Discovery.
+
+- **`client.go`** : Client MQTT avec StateManager pour la gestion d'état
+- **`controller.go`** : Entité "Controleur" globale (mode, durée, programme)
+- **`heater.go`** : Entités "Climate" pour chaque radiateur
+- **`structs.go`** : Payloads de configuration MQTT Discovery (Climate, Select, Sensor, Button)
+- **`listen.go`** : Listeners pour les changements d'état depuis HA
+- **`publish.go`** : Publication vers MQTT
+- **`state_publisher.go`** : Détection de changements d'état (StateManager, diff)
+- **`common.go`** : Factories pour générer les payloads de configuration
+- **`enums.go`** : Constantes (HeaterMode, HeaterPresetMode, HeaterAction, durées)
+
+### `/internal/transform` - Synchronisation bidirectionnelle
+- **`voltalis_to_ha.go`** : Sync Voltalis → Home Assistant (lecture périodique via scheduler)
+- **`ha_to_voltalis.go`** : Sync Home Assistant → Voltalis (écoute changements MQTT)
+- **`sync_programs.go`** : Synchronisation des programmes disponibles
+
+### `/internal/state` - Gestion d'état
+- **`state.go`** : Structures représentant l'état actuel (ResourceState, ControllerState, HeaterState)
+
+### `/internal/scheduler` - Tâches planifiées
+- **`scheduler.go`** : Exécution périodique de la sync Voltalis → HA
+
+### `/internal/config` - Configuration
+- **`options.go`** : Chargement des options (credentials MQTT/Voltalis)
+
+## 🔄 Flux de Données
+
+### Voltalis → Home Assistant (Lecture)
+1. `scheduler` déclenche `transform.SyncVoltalisHeatersToHA()` périodiquement
+2. Appels API Voltalis : `GetAppliances()`, `GetPrograms()`
+3. Mapping `api.Appliance` → `state.HeaterState` et `state.ControllerState`
+4. Mise à jour du StateManager via `UpdateStateWithoutNotification()` (sans déclencher de notification)
+5. Publication MQTT sur les topics d'état (`/get`) via `PublishState()`
+6. Publication de l'`action` pour l'indicateur visuel via `presetToAction()`
+
+### Home Assistant → Voltalis (Écriture)
+1. `mqtt.ListenState()` écoute les changements sur les topics `/set`
+2. Mise à jour du `StateManager` avec comparaison de l'état précédent
+3. Envoi des changements via le channel `StateChange`
+4. `transform.Start()` reçoit les changements et appelle l'API Voltalis
+5. Si changements appliqués → `scheduler.Trigger()` pour resync
+
+## 🎛️ Mapping des Concepts
+
+### Modes Voltalis vs PresetModes HA
+
+| Voltalis Mode | HA PresetMode |
+|---------------|---------------|
+| CONFORT       | Confort       |
+| ECO           | Eco           |
+| HORS_GEL      | Hors-Gel      |
+| TEMPERATURE   | (mode heat)   |
+
+### Types de Programmation Voltalis
+
+| ProgType | Description                        | Mapping HA             |
+|----------|------------------------------------|------------------------|
+| USER     | Programme hebdomadaire utilisateur | Programme sélectionné  |
+| QUICK    | Mode rapide (shortleave, etc.)     | Mode controller        |
+| MANUAL   | Réglage manuel température         | Mode heat + temp       |
+
+### QuickSettings Names
+
+| API Name                   | Signification     |
+|----------------------------|-------------------|
+| `quicksettings.shortleave` | Absence courte    |
+| `quicksettings.athome`     | Présence maison   |
+| `quicksettings.longleave`  | Absence longue    |
+
+## 🌐 API Voltalis - Endpoints
+
+Base URL: `https://api.myvoltalis.com`
+
+### Authentification
+```
+POST /auth/login
+Body: { "login": "...", "password": "..." }
+Response: { "token": "..." }
+```
+
+### Lecture
+```
+GET /api/account/me                              → User info + default site
+GET /api/site/{siteId}/managed-appliance         → Liste des radiateurs
+GET /api/site/{siteId}/managed-appliance/{id}    → Détail d'un radiateur
+GET /api/site/{siteId}/manualsetting             → Réglages manuels
+GET /api/site/{siteId}/programming/program       → Liste des programmes
+GET /api/site/{siteId}/consumption/realtime      → Consommation temps réel
+```
+
+### Écriture
+```
+PUT /api/site/{siteId}/programming/program/{programId}
+Body: { "id": X, "name": "...", "enabled": true/false }
+
+PUT /api/site/{siteId}/quicksettings/{qsId}
+Body: { "untilFurtherNotice": true, "appliancesSettings": [...] }
+
+PUT /api/site/{siteId}/quicksettings/{qsId}/enable
+Body: { "enabled": true/false }
+
+PUT /api/site/{siteId}/manualsetting/{manualSettingId}
+Body: { "enabled": true, "idAppliance": X, "untilFurtherNotice": false, "isOn": true, "mode": "ECO", "modeEndDate": "2025-12-08T23:20:34", "temperatureTarget": 20 }
+```
+
+### ⚠️ Activation des QuickSettings (2 appels requis)
+Pour activer un quicksetting, il faut faire **2 appels API** :
+1. `PUT /quicksettings/{id}` - Met à jour les paramètres (durée, appliances)
+2. `PUT /quicksettings/{id}/enable` - Active le quicksetting avec `{"enabled": true}`
+
+Si on ne fait qu'un seul appel, le quicksetting peut ne pas s'activer correctement.
+
+## 🏠 Entités Home Assistant Créées
+
+### Par Radiateur (Heater)
+- **Climate** : Contrôle température + mode (off/auto/heat) + preset
+- **Select "Durée"** : Durée du mode manuel
+- **Sensor "Durée mode"** : Affichage de la durée restante
+
+### Controleur Global
+- **Select "Mode"** : Eco / Confort / Hors-Gel / Aucun mode
+- **Select "Durée"** : Durée d'application du mode
+- **Select "Programme"** : Programme hebdomadaire actif
+- **Button "Refresh"** : Forcer la resynchronisation
+
+## 📝 Topics MQTT
+
+Pattern: `voltalis/{identifier}/{get|set}`
+
+Exemples:
+- `voltalis/voltalis_controller_mode/set` - Commande mode controller
+- `voltalis/voltalis_controller_mode/get` - État mode controller
+- `voltalis/voltalis_heater_1534507_mode/set` - Commande mode radiateur
+- `voltalis/voltalis_heater_1534507_preset_mode/get` - État preset radiateur
+
+## 🔑 Points d'Attention
+
+1. **StateManager** : Utilise un système de hash + diff pour détecter uniquement les vrais changements
+2. **Dual Topics** : Chaque entité a un topic `/set` (commande) et `/get` (état)
+3. **MQTT Discovery** : Les configs sont publiées sous `homeassistant/{component}/...`
+4. **Site ID** : Récupéré automatiquement via `/api/account/me` → `defaultSite.id`
+
+## ⚠️ Pièges de l'API Voltalis (IMPORTANT)
+
+### 1. Le champ `temperatureTarget` est TOUJOURS présent
+L'API Voltalis renvoie **toujours** une valeur `temperatureTarget` même quand le mode est ECO/CONFORT/HORS_GEL. **Ne pas se fier à ce champ pour déterminer le mode !** C'est le champ `mode` qui fait foi.
+
+### 2. Le champ `mode` dans ManualSetting détermine le type de contrôle
+| Mode API | Signification |
+|----------|---------------|
+| `CONFORT` | Preset Confort (ignore temperatureTarget) |
+| `ECO` | Preset Eco (ignore temperatureTarget) |
+| `HORS_GEL` | Preset Hors-Gel (ignore temperatureTarget) |
+| `TEMPERATURE` | Température personnalisée (utilise temperatureTarget) |
+
+### 3. Types de programmation (ProgType)
+| ProgType | Description | Mode HA correspondant |
+|----------|-------------|----------------------|
+| `USER` | Programme hebdomadaire actif | `auto` |
+| `QUICK` | QuickSetting actif (absence courte, etc.) | Preset selon le quicksetting |
+| `MANUAL` | ManualSetting actif (pilotage manuel) | `heat` si TEMPERATURE, sinon preset |
+| `DEFAULT` | Aucun programme/setting actif | `auto` |
+
+### 4. Le champ `IsOn` contrôle l'extinction
+- `IsOn: true` = radiateur actif (chauffe selon le mode)
+- `IsOn: false` = radiateur éteint (mode `off` dans HA)
+
+### 5. Format de date pour `endDate` / `modeEndDate`
+Format attendu : `2006-01-02T15:04:05` (sans timezone)
+
+**Attention :** Pour les QuickSettings, le champ s'appelle `modeEndDate` (pas `endDate`).
+
+## 🔧 Logique de Synchronisation
+
+### HA → Voltalis (ha_to_voltalis.go)
+
+**Ordre de priorité pour déterminer l'action :**
+1. **Mode `off`** → `UpdateManualSetting` avec `IsOn: false`
+2. **Mode `auto` sans changement de preset** → Désactiver le ManualSetting (`Enabled: false`)
+3. **Changement de preset** (ECO/CONFORT/HORS_GEL) → `UpdateManualSetting` avec le mode correspondant
+4. **Mode `heat`** → `UpdateManualSetting` avec `mode: "TEMPERATURE"` et la température
+
+**Important :** Quand on détecte un changement de preset, récupérer la NOUVELLE valeur depuis `changes["PresetMode"]`, pas depuis `heaterState.PresetMode` (qui peut être l'ancienne valeur).
+
+### Voltalis → HA (voltalis_to_ha.go)
+
+**Publication MQTT :**
+- Toujours publier le `mode` ET le `preset` (pas l'un OU l'autre)
+- Cela permet au StateManager de toujours avoir les deux valeurs à jour
+
+### Gestion du Scheduler
+
+Les handlers dans `ha_to_voltalis.go` retournent `(bool, error)` :
+- `true` = des changements ont été appliqués côté Voltalis → déclencher `scheduler.Trigger()` pour resync
+- `false` = pas de changement → ne pas déclencher le scheduler
+
+**Ignorer les changements au démarrage :** Vérifier `changes["initial_state"]` pour éviter d'appeler l'API lors de l'initialisation.
+
+## ⚠️ Pièges MQTT & Boucles (IMPORTANT)
+
+### 1. Séparation des topics `/set` et `/get`
+- **Topics `/set`** : Commandes envoyées par Home Assistant → écoutés par les listeners
+- **Topics `/get`** : État publié vers Home Assistant → affichage dans l'UI
+
+**CRITIQUE :** Le sync Voltalis → HA doit publier sur les topics `/get` (via `PublishState`) et **jamais** sur les topics `/set` (via `PublishCommand`). Sinon, les listeners reçoivent les publications et déclenchent des changements en cascade → boucle infinie.
+
+### 2. UpdateStateWithoutNotification
+Lors du sync Voltalis → HA, utiliser `StateManager.UpdateStateWithoutNotification()` pour mettre à jour l'état interne **sans** déclencher de notification aux subscribers. Cela évite que le sync déclenche des appels API vers Voltalis.
+
+### 3. Topic Action pour l'indicateur visuel
+L'`action` du climate (heating/cooling/idle/off) est utilisée comme indicateur visuel dans HA (bindé aux presets). Lors du sync Voltalis → HA, il faut publier explicitement sur le topic `action` en fonction du preset :
+- `Confort` → `heating`
+- `Eco` → `cooling`  
+- `Hors-Gel` → `idle`
+- Mode `off` → `off`
+- Mode `heat` → `heating`
+
+Utiliser `presetToAction()` dans `voltalis_to_ha.go` et `recomputeState()` dans `heater.go`.
+
+### 4. Reconnexion MQTT
+Le client MQTT peut perdre la connexion (erreur EOF). Pour gérer cela :
+- `SetAutoReconnect(true)` et `SetConnectRetry(true)` dans les options
+- Stocker les subscriptions dans `Client.subscriptions`
+- `MarkSubscriptionsComplete()` après l'initialisation des listeners
+- `resubscribeAll()` dans le `OnConnectHandler` (uniquement si `hasConnectedOnce` est true)
+
+**Attention :** Ne pas réabonner lors de la première connexion, sinon risque de boucle.
+
+## 🚧 TODO / En cours
+
+- [x] Implémentation de `ha_to_voltalis.go` pour appeler les APIs de modification
+- [x] Gestion des durées avec calcul de endDate
+- [x] Gestion des programmes (activation/désactivation)
+- [x] Gestion des quicksettings globaux (mode controller)
+- [x] Gestion des manualsettings pour radiateur individuel
+- [x] Gestion du mode off (extinction radiateur)
+- [x] Gestion du retour au mode auto (désactivation manualSetting)
+- [x] Correction du mapping ProgType MANUAL → preset vs température
+- [x] Correction boucle infinie MQTT (séparation topics /set et /get)
+- [x] Reconnexion MQTT automatique avec réabonnement aux topics
+- [x] Publication de l'action pour l'indicateur visuel lors du sync
+- [ ] Tests automatisés
+
+## 🛠️ Debug & Logs
+
+### Lancer / relancer l'application Voltalis
+1. Se placer à la racine du repo : `cd /workspaces/voltalis-integration`.
+2. S'assurer que le stack Home Assistant est en marche si nécessaire : `cd test && docker-compose up -d` puis revenir à la racine.
+3. Créer un dossier de logs local si besoin : `mkdir -p logs`.
+4. Lancer l'application en capturant les logs :
+   ```bash
+   timestamp="$(date +"%Y%m%d_%H%M%S")"
+   ./test.sh 2>&1 | tee "logs/voltalis_${timestamp}.log"
+   ln -sfn "voltalis_${timestamp}.log" logs/voltalis_latest.log
+   ```
+   - `DEBUG` et `OPTIONS_FILE` peuvent être surchargées avant l'exécution si besoin.
+   - `Ctrl+C` interrompt l'exécution ; relancer la commande génère un nouveau fichier.
+5. Lire le dernier log : `less logs/voltalis_latest.log` ou `tail -f logs/voltalis_latest.log`.
+
+### Consulter les logs Home Assistant
+- Pour afficher le fichier directement : `tail -f test/hass_config/home-assistant.log`.
+- Pour suivre les logs Docker (si stack lancée) :
+  ```bash
+  cd test
+  docker-compose logs -f homeassistant
+  ```
+- Pour Mosquitto : `docker-compose logs -f mosquitto`.
+- Arrêt du stack de test : `docker-compose down` depuis `test`.
+
+### Nettoyage des logs locaux
+- Lister les logs : `ls -1 logs/voltalis_*.log`.
+- Supprimer les anciens : `rm logs/voltalis_2024*.log` (adapter le pattern).
+
+## 🧪 Test
+
+```bash
+cd test
+docker-compose up -d  # Lance Home Assistant + Mosquitto
+cd ../voltalis
+go run ./cmd/voltalis/main.go
+```
+
+## 📋 Exemple de requête ManualSetting fonctionnelle
+
+```bash
+# Mettre un radiateur en mode ECO
+curl 'https://api.myvoltalis.com/api/site/{siteId}/manualsetting/{manualSettingId}' \
+  -X 'PUT' \
+  -H 'Authorization: Bearer {token}' \
+  -H 'Content-Type: application/json' \
+  --data-raw '{"enabled":true,"idAppliance":1534550,"untilFurtherNotice":false,"isOn":true,"mode":"ECO","endDate":"2025-12-08T23:07:40","temperatureTarget":18}'
+```
+
+Note : `temperatureTarget` est ignoré quand `mode` est ECO/CONFORT/HORS_GEL, mais doit quand même être présent dans la requête.

@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"fmt"
-	"log/slog"
 	"maps"
 	"slices"
 )
@@ -16,7 +15,6 @@ func newTopicName[T Topic](base string) T {
 		mode = "get"
 	}
 	result := T(fmt.Sprintf("voltalis/%s/%s", base, mode))
-	slog.With("result", result).Debug("instanciating ")
 	return result
 }
 
@@ -44,12 +42,34 @@ func getPayloadSelectDuration(device DeviceInfo) *SelectConfigPayload[string] {
 	}
 }
 
-func getPayloadDureeMode(device DeviceInfo) *SensorConfigPayload {
+func getPayloadDureeMode(device DeviceInfo, topic GetTopic) *SensorConfigPayload {
 	identifier := device.Identifiers[0] + "_state"
 	return &SensorConfigPayload{
 		UniqueID:   identifier,
 		Name:       "Durée mode",
-		StateTopic: newTopicName[GetTopic](identifier),
+		StateTopic: topic,
 		Device:     device,
+	}
+}
+
+func getPayloadRefreshButton(device DeviceInfo) *ButtonConfigPayload {
+	identifier := device.Identifiers[0] + "_refresh"
+	return &ButtonConfigPayload{
+		UniqueID:     identifier,
+		Name:         "Recharger la configuration",
+		CommandTopic: newTopicName[SetTopic](identifier),
+		Device:       device,
+	}
+}
+
+func getPayloadSelectProgram(options ...string) *SelectConfigPayload[string] {
+	identifier := CONTROLLER_DEVICE.Identifiers[0] + "_program"
+	return &SelectConfigPayload[string]{
+		UniqueID:     identifier,
+		Name:         "Sélectionner le programme",
+		CommandTopic: newTopicName[SetTopic](identifier),
+		StateTopic:   newTopicName[GetTopic](identifier),
+		Options:      append([]string{"Aucun programme"}, options...),
+		Device:       CONTROLLER_DEVICE,
 	}
 }

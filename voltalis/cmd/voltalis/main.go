@@ -32,19 +32,20 @@ func main() {
 		panic(err)
 	}
 
-	appl, _ := apiClient.GetAppliances()
-	fmt.Println(appl)
-
 	g, ctx := errgroup.WithContext(context.Background())
 
+	s := scheduler.New(15*time.Second, func() error {
+		return transform.SyncVoltalisHeatersToHA(mqttClient, apiClient)
+	})
+	s.Trigger()
 	g.Go(func() error {
-		return scheduler.Run(15*time.Second, func() error {
-			return transform.SyncVoltalisHeatersToHA(mqttClient)
-		})
+
+		s.Start()
+		return <-s.Err()
 	})
 
 	g.Go(func() error {
-		return transform.Start(ctx, mqttClient)
+		return transform.Start(ctx, mqttClient, apiClient, s)
 	})
 
 	// Attendre que toutes les goroutines se terminent
