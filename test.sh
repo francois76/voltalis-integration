@@ -1,1 +1,1 @@
-(cd voltalis && DEBUG=1 OPTIONS_FILE="/workspaces/voltalis-integration/options.yaml" go run cmd/voltalis/main.go)
+(cd voltalis && DEBUG=1 OPTIONS_FILE="/home/fgognet/projets/voltalis-integration/options.yaml" go run cmd/voltalis/main.go)

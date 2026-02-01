@@ -9,6 +9,7 @@ import (
 
 type Options struct {
 	MqttURL          string `json:"mqtt_url"`
+	MqttUser         string `json:"mqtt_user"`
 	MqttPassword     string `json:"mqtt_password"`
 	VoltalisLogin    string `json:"voltalis_login"`
 	VoltalisPassword string `json:"voltalis_password"`

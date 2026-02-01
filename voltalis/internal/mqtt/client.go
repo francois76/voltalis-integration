@@ -28,7 +28,7 @@ type Client struct {
 	hasConnectedOnce   atomic.Bool // true après la première connexion réussie avec subscriptions
 }
 
-func InitClient(broker string, clientID string, password string) (*Client, error) {
+func InitClient(broker string, clientID string, username string, password string) (*Client, error) {
 	// Créer le wrapper client d'abord
 	c := &Client{
 		stateTopicMap: make(map[SetTopic]string),
@@ -61,6 +61,9 @@ func InitClient(broker string, clientID string, password string) (*Client, error
 			}
 		})
 
+	if username != "" {
+		opts = opts.SetUsername(username)
+	}
 	if password != "" {
 		opts = opts.SetPassword(password)
 	}

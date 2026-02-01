@@ -22,10 +22,11 @@ func main() {
 		panic(err)
 	}
 	slog.With("options", opts).Info("loading options")
-	mqttClient, err := mqtt.InitClient("tcp://"+opts.MqttURL, "voltalis-addon", opts.MqttPassword)
+	mqttClient, err := mqtt.InitClient("tcp://"+opts.MqttURL, "voltalis-addon", opts.MqttUser, opts.MqttPassword)
 	if err != nil {
 		panic(err)
 	}
+	slog.Info("MQTT client initialized")
 
 	apiClient, err := api.NewClient("https://api.myvoltalis.com", opts.VoltalisLogin, opts.VoltalisPassword)
 	if err != nil {
